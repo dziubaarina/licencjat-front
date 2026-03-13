@@ -142,4 +142,88 @@ body {
     border-radius: 4px;
     padding: 2px 8px !important;
     font-weight: 500;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* --- KRZYŻYKI (X) DO USUWANIA TAGÓW --- */
+.ts-control .item .remove {
+    color: #000000 !important;
+    margin-left: 8px !important;
+    padding-left: 8px !important;
+    border-left: 1px solid rgba(0, 0, 0, 0.3) !important;
+    text-decoration: none !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+}
+
+.ts-control .item .remove:hover {
+    color: #ff0000 !important;
+}
+/* =============================== */
+/* --- WŁASNY MULTI-SELECT      --- */
+/* =============================== */
+
+.dancer-tags-box {
+    min-height: 44px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.dancer-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #a893ff;
+    color: #000;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-weight: 500;
+    font-size: 0.88rem;
+    gap: 4px;
+}
+
+.dancer-tag-remove {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    padding-left: 4px;
+    border-left: 1px solid rgba(0,0,0,0.3);
+    margin-left: 2px;
+    color: #000;
+    transition: color 0.15s;
+}
+
+.dancer-tag-remove:hover {
+    color: #cc0000;
+}
+
+.dancer-dropdown {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+}
+
+.dancer-option {
+    padding: 10px 14px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.95rem;
+}
+
+.dancer-option:hover {
+    background: #a893ff;
+    color: #000;
+}
+
+.dancer-option-all {
+    font-weight: 600;
+    border-bottom: 1px solid #333;
 }

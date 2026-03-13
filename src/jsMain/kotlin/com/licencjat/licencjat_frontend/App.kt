@@ -19,6 +19,7 @@ import io.kvision.form.text.text
 import io.kvision.form.text.password
 import io.kvision.form.text.textArea
 import io.kvision.form.select.tomSelect
+import io.kvision.form.select.TomSelectOptions
 import kotlinx.browser.window
 
 enum class Page {
@@ -48,18 +49,23 @@ class App : Application() {
 
                     when (page) {
                         Page.HOME -> buildHomeView()
+
                         Page.DANCER_DASHBOARD -> buildDancerDashboard(appState)
                         Page.CHOREO_DASHBOARD -> buildChoreoDashboard()
                         Page.ADMIN_PANEL -> buildAdminPanel()
+
                         Page.DANCER_TASKS -> buildDancerTasks(appState)
                         Page.DANCER_SUBMISSIONS -> buildDancerSubmissions(appState)
                         Page.DANCER_STATS -> buildDancerStats(appState)
+
                         Page.CHOREO_QUEUE -> buildChoreoQueue()
                         Page.CHOREO_TASKS -> buildChoreoTasks()
                         Page.CHOREO_ARCHIVE -> buildChoreoArchive()
+
                         Page.ADMIN_VERIFY -> buildAdminVerify()
                         Page.ADMIN_USERS -> buildAdminUsers()
                         Page.ADMIN_MODERATION -> buildAdminModeration()
+
                         Page.PLAYER -> buildPlayerView()
                     }
                 }
@@ -119,24 +125,53 @@ class App : Application() {
     }
 
     private fun Container.buildHomeView() {
-        div(className = "hero-section") {
-            height = 85.vh; display = Display.FLEX; alignItems = AlignItems.CENTER; justifyContent = JustifyContent.CENTER
-            position = Position.RELATIVE; overflow = Overflow.HIDDEN
+        div {
+            div(className = "hero-section") {
+                height = 85.vh; display = Display.FLEX; alignItems = AlignItems.CENTER; justifyContent = JustifyContent.CENTER
+                position = Position.RELATIVE; overflow = Overflow.HIDDEN
 
-            tag(TAG.VIDEO, className = "hero-video") {
-                setAttribute("autoplay", "autoplay"); setAttribute("loop", "loop")
-                setAttribute("muted", "muted"); setAttribute("playsinline", "playsinline")
-                tag(TAG.SOURCE) { setAttribute("src", "video/dance-bg.mp4"); setAttribute("type", "video/mp4") }
-            }
+                tag(TAG.VIDEO, className = "hero-video") {
+                    setAttribute("autoplay", "autoplay"); setAttribute("loop", "loop")
+                    setAttribute("muted", "muted"); setAttribute("playsinline", "playsinline")
+                    tag(TAG.SOURCE) { setAttribute("src", "video/dance-bg.mp4"); setAttribute("type", "video/mp4") }
+                }
 
-            div(className = "hero-overlay w-100 d-flex justify-content-center align-items-center text-center") {
-                vPanel(alignItems = AlignItems.CENTER) {
-                    h1("Twój taniec. Nasz feedback.", className = "steezy-hero-title mb-3 shadow-text")
-                    p("Wgraj nagranie i otrzymaj wskazówki od choreografów sekunda po sekundzie.", className = "steezy-hero-subtitle mb-5 shadow-text px-3")
-                    button("Poczuj rytm", className = "btn dance-btn-primary btn-lg px-5 py-3 rounded-pill fw-bold") {
-                        onClick { registerModal.show() }
+                div(className = "hero-overlay w-100 d-flex justify-content-center align-items-center text-center") {
+                    vPanel(alignItems = AlignItems.CENTER) {
+                        h1("Twój taniec. Nasz feedback.", className = "steezy-hero-title mb-3 shadow-text")
+                        p("Wgraj nagranie i otrzymaj wskazówki od choreografów sekunda po sekundzie.", className = "steezy-hero-subtitle mb-5 shadow-text px-3")
+                        button("Poczuj rytm", className = "btn dance-btn-primary btn-lg px-5 py-3 rounded-pill fw-bold") {
+                            onClick { registerModal.show() }
+                        }
                     }
                 }
+            }
+            buildFeaturesSection()
+        }
+    }
+
+    private fun Container.buildFeaturesSection() {
+        div(className = "bg-white py-5") {
+            div(className = "container py-5") {
+                div(className = "row text-center mb-5") {
+                    h2("Dlaczego nasza platforma?", className = "fw-bold text-dark")
+                    p("Zaprojektowana z myślą o rozwoju i komunikacji.", className = "text-muted")
+                }
+                div(className = "row g-4 text-center") {
+                    featureCard("fa-users", "Dla Tancerzy", "Otrzymuj konkretny feedback do swoich ruchów. Wgrywaj nagrania i śledź swój progres w dedykowanym panelu.")
+                    featureCard("fa-video", "Dla Choreografów", "Zarządzaj zadaniami. Innowacyjny odtwarzacz wideo z notatkami czasowymi ułatwi Ci szybką ocenę techniki.")
+                    featureCard("fa-comments", "Przestrzeń Komunikacji", "Bezpośredni kontakt trenera z tancerzem. Wymieniajcie się uwagami, aby każdy trening był jeszcze efektywniejszy.")
+                }
+            }
+        }
+    }
+
+    private fun Container.featureCard(icon: String, title: String, desc: String) {
+        div(className = "col-md-4") {
+            div(className = "card h-100 border-0 shadow-sm p-4 hover-card bg-light") {
+                div(className = "mb-4") { tag(TAG.I, className = "fa-solid $icon fa-3x text-primary-dance") }
+                h4(title, className = "fw-bold text-dark mb-3")
+                p(desc, className = "text-muted")
             }
         }
     }
@@ -153,7 +188,7 @@ class App : Application() {
                         "admin@danceapp.pl" -> { userRole.value = "ADMIN"; appState.value = Page.ADMIN_PANEL; modal.hide() }
                         "trener@danceapp.pl" -> { userRole.value = "CHOREOGRAPHER"; appState.value = Page.CHOREO_DASHBOARD; modal.hide() }
                         "tancerz@danceapp.pl" -> { userRole.value = "DANCER"; appState.value = Page.DANCER_DASHBOARD; modal.hide() }
-                        else -> window.alert("Błąd logowania!")
+                        else -> window.alert("Błędne dane!")
                     }
                 }
             }
@@ -201,42 +236,97 @@ class App : Application() {
         }
     }
 
+    // ==========================================
+    // CHOREOGRAF - KREATOR ZADAŃ
+    // ==========================================
     private fun Container.buildChoreoTasks() {
+        val allDancers = listOf(
+            "1" to "tancerz@danceapp.pl (Konto Testowe)",
+            "2" to "Anna Kowalska",
+            "3" to "Jan Nowak"
+        )
+
+        // Stan wybranych tancerzy
+        val selected = io.kvision.state.ObservableListWrapper<String>()
+
         div(className = "container py-5 mt-5") {
             backButton(appState, Page.CHOREO_DASHBOARD)
             div(className = "row") {
                 div(className = "col-md-7") {
-                    h2("Kreator zadań", className = "fw-bold mb-4")
+                    h2("Kreator zadan", className = "fw-bold mb-4")
                     div(className = "card bg-dark border-secondary p-4") {
-                        val taskTitle = text(label = "Tytuł zadania") { addCssClass("bg-dark"); addCssClass("text-white") }
-                        val taskDesc = textArea(label = "Opis wymagań") { addCssClass("bg-dark"); addCssClass("text-white") }
+                        text(label = "Tytul zadania") { addCssClass("bg-dark"); addCssClass("text-white") }
+                        textArea(label = "Opis wymagan") { addCssClass("bg-dark"); addCssClass("text-white") }
 
-                        // ✨ POPRAWIONY TOM SELECT
-                        val dancerSelect = tomSelect(
-                            label = "Przypisz do tancerzy:",
-                            options = listOf(
-                                "ALL" to "Wszyscy moi tancerze",
-                                "1" to "tancerz@danceapp.pl (Konto Testowe)",
-                                "2" to "Anna Kowalska",
-                                "3" to "Jan Nowak"
-                            )
-                        ) {
-                            multiple = true
-                            placeholder = "Kliknij, aby wybrać tancerzy..."
-                        }
+                        // === WŁASNY MULTI-SELECT ===
+                        label("Przypisz do tancerzy:", className = "form-label text-light fw-bold mt-3")
 
-                        // Logika automatycznego zaznaczania
-                        dancerSelect.onEvent {
-                            change = {
-                                val currentValues = dancerSelect.value?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
-                                if (currentValues.contains("ALL")) {
-                                    // Ustawiamy konkretne ID, co automatycznie usuwa tag "Wszyscy"
-                                    dancerSelect.value = "1,2,3"
+                        // Strefa wybranych tagów
+                        val tagsBox = div(className = "dancer-tags-box mb-2") {}
+
+                        // Dropdown lista
+                        val dropdownBox = div(className = "dancer-dropdown") {}
+
+                        fun refresh() {
+                            tagsBox.removeAll()
+                            dropdownBox.removeAll()
+
+                            // Tagi wybranych
+                            tagsBox.apply {
+                                if (selected.isEmpty()) {
+                                    span("Brak wybranych tancerzy", className = "text-muted small fst-italic")
+                                } else {
+                                    selected.forEach { id ->
+                                        val name = allDancers.find { it.first == id }?.second ?: id
+                                        span(className = "dancer-tag") {
+                                            span(name)
+                                            span(" \u00D7", className = "dancer-tag-remove") {
+                                                onClick {
+                                                    selected.remove(id)
+                                                    refresh()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Lista do wyboru (tylko niewybranych)
+                            dropdownBox.apply {
+                                // Opcja "Wszyscy"
+                                val allSelected = selected.containsAll(allDancers.map { it.first })
+                                if (!allSelected) {
+                                    div(className = "dancer-option dancer-option-all") {
+                                        span("\u2605 Wszyscy moi tancerze")
+                                        onClick {
+                                            allDancers.forEach { (id, _) ->
+                                                if (!selected.contains(id)) selected.add(id)
+                                            }
+                                            refresh()
+                                        }
+                                    }
+                                }
+                                // Indywidualne opcje — tylko niewybranych
+                                allDancers.filter { !selected.contains(it.first) }.forEach { (id, name) ->
+                                    div(className = "dancer-option") {
+                                        span(name)
+                                        onClick {
+                                            selected.add(id)
+                                            refresh()
+                                        }
+                                    }
+                                }
+                                if (allDancers.all { selected.contains(it.first) }) {
+                                    div(className = "dancer-option text-muted fst-italic small") {
+                                        span("Wszyscy tancerze zostali wybrani")
+                                    }
                                 }
                             }
                         }
 
-                        div(className = "mt-3") {
+                        refresh()
+
+                        div(className = "mt-4") {
                             label("Wideo wzorcowe (wymagane)", className = "form-label text-light fw-bold")
                             tag(TAG.INPUT, className = "form-control bg-dark text-white border-secondary mb-3") {
                                 setAttribute("type", "file"); setAttribute("accept", "video/*")
@@ -244,12 +334,15 @@ class App : Application() {
                         }
 
                         button("Opublikuj zadanie", className = "btn dance-btn-primary w-100 mt-3") {
-                            onClick {
-                                if(taskTitle.value != null) {
-                                    window.alert("Zadanie opublikowane!"); taskTitle.value = ""; taskDesc.value = ""
-                                }
-                            }
+                            onClick { window.alert("Zadanie opublikowane!") }
                         }
+                    }
+                }
+                div(className = "col-md-5") {
+                    h4("Twoje aktywne zadania", className = "fw-bold mb-3 mt-4 mt-md-0")
+                    ul(className = "list-group bg-dark") {
+                        li("Izolacje klatki piersiowej", className = "list-group-item bg-dark text-white border-secondary")
+                        li("Footwork Basics", className = "list-group-item bg-dark text-white border-secondary")
                     }
                 }
             }
@@ -257,9 +350,8 @@ class App : Application() {
     }
 
     private fun Container.buildChoreoArchive() { buildPlaceholderView(appState, "Archiwum", Page.CHOREO_DASHBOARD) }
-    private fun Container.buildAdminPanel() { buildAdminPanelCustom() } // uproszczone dla czytelności
 
-    private fun Container.buildAdminPanelCustom() {
+    private fun Container.buildAdminPanel() {
         div(className = "container py-5 mt-5") {
             h2("Panel Admina", className = "fw-bold text-danger mb-4")
             div(className = "row g-4") {
@@ -275,7 +367,7 @@ class App : Application() {
     private fun Container.buildAdminModeration() {
         div(className="container py-5 mt-5"){
             backButton(appState, Page.ADMIN_PANEL); h2("Moderacja treści")
-            button("Usuń testowe nagranie", className="btn btn-danger") { onClick { ApiService.deleteSubmissionAPI(1) } }
+            button("Usuń nagranie #1", className="btn btn-danger") { onClick { ApiService.deleteSubmissionAPI(1) } }
         }
     }
 
