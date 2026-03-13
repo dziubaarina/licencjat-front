@@ -334,7 +334,16 @@ class App : Application() {
                         }
 
                         button("Opublikuj zadanie", className = "btn dance-btn-primary w-100 mt-3") {
-                            onClick { window.alert("Zadanie opublikowane!") }
+                            onClick {
+                                val toast = kotlinx.browser.document.createElement("div")
+                                toast.asDynamic().className = "dance-toast"
+                                toast.textContent = "\u2713 Zadanie opublikowane!"
+                                kotlinx.browser.document.body?.appendChild(toast)
+                                window.setTimeout({
+                                    toast.asDynamic().classList.add("dance-toast-hide")
+                                    window.setTimeout({ kotlinx.browser.document.body?.removeChild(toast) }, 400)
+                                }, 2500)
+                            }
                         }
                     }
                 }

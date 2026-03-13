@@ -227,3 +227,88 @@ body {
     font-weight: 600;
     border-bottom: 1px solid #333;
 }
+/* =============================== */
+/* --- WŁASNY MULTI-SELECT      --- */
+/* =============================== */
+
+.dancer-tags-box {
+    min-height: 44px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s;
+}
+.dancer-tags-box:hover { border-color: #a893ff; }
+.dancer-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #a893ff;
+    color: #000;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-weight: 500;
+    font-size: 0.88rem;
+    gap: 4px;
+    cursor: default;
+}
+.dancer-tag-remove {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    padding-left: 4px;
+    border-left: 1px solid rgba(0,0,0,0.3);
+    margin-left: 2px;
+    color: #000;
+    transition: color 0.15s;
+}
+.dancer-tag-remove:hover { color: #cc0000; }
+.dancer-dropdown {
+    background: #1a1a1a;
+    border: 1px solid #a893ff;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+}
+.dancer-option {
+    padding: 10px 14px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.95rem;
+}
+.dancer-option:hover { background: #a893ff; color: #000; }
+.dancer-option-all { font-weight: 600; border-bottom: 1px solid #333; }
+
+/* =============================== */
+/* --- TOAST POWIADOMIENIE      --- */
+/* =============================== */
+
+.dance-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: #a893ff;
+    color: #000;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border-radius: 50px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    white-space: nowrap;
+}
+
+.dance-toast-hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+}
