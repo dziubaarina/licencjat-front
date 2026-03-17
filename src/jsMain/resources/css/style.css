@@ -312,3 +312,29 @@ body {
     opacity: 0;
     transform: translateX(-50%) translateY(16px);
 }
+/* =============================== */
+/* --- TOAST POWIADOMIENIE      --- */
+/* =============================== */
+
+.dance-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: #a893ff;
+    color: #000;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border-radius: 50px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    white-space: nowrap;
+}
+
+.dance-toast-hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+}
