@@ -18,16 +18,18 @@ fun Container.dashboardCard(icon: String, title: String, desc: String, action: (
     }
 }
 
-// Uniwersalny przycisk powrotu
+// Uniwersalny przycisk powrotu (Teraz większy, ze strzałką i marginesem!)
 fun Container.backButton(appState: ObservableValue<Page>, targetPage: Page) {
-    button("Wróć", className = "btn btn-outline-light mb-4 rounded-pill btn-sm") {
-        onClick { appState.value = targetPage }
+    div(className = "mb-4") {
+        button("⬅ Wróć", className = "btn btn-outline-light rounded-pill px-4 fw-bold") {
+            onClick { appState.value = targetPage }
+        }
     }
 }
 
 // Tymczasowy widok dla zakładek w budowie
 fun Container.buildPlaceholderView(appState: ObservableValue<Page>, title: String, backPage: Page) {
-    div(className = "container py-5 mt-5") {
+    div(className = "container py-5 mt-5 pt-5") {
         backButton(appState, backPage)
         h2(title, className = "fw-bold mb-3")
         div(className = "card bg-dark text-white border-secondary p-5 text-center") {

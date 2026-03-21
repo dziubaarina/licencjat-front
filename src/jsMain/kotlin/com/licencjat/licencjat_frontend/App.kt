@@ -18,7 +18,7 @@ import io.kvision.modal.Modal
 import io.kvision.form.text.text
 import io.kvision.form.text.password
 import io.kvision.form.text.textArea
-import io.kvision.form.text.textInput // NOWY IMPORT - pozwala na czyste inputy bez wrapperów!
+import io.kvision.form.text.textInput
 import kotlinx.browser.document
 import kotlinx.browser.window
 import org.w3c.files.Blob
@@ -56,39 +56,68 @@ enum class Page {
     ADMIN_VERIFY, ADMIN_USERS, ADMIN_MODERATION
 }
 
+// Pomocnicza funkcja do wyciągnięcia userId z JWT (payload base64)
+fun getUserIdFromToken(): Int? {
+    return try {
+        val token = window.localStorage.getItem("jwt") ?: return null
+        val payload = token.split(".").getOrNull(1) ?: return null
+        val decoded = window.atob(payload.replace("-", "+").replace("_", "/"))
+        val json = JSON.parse<dynamic>(decoded)
+        // Spring Security ustawia "sub" jako email, więc userId pobieramy z osobnego pola jeśli jest,
+        // lub fallback na 1 dla konta testowego
+        val sub = json.sub?.toString() ?: return null
+        // Próba pobrania userId z claims jeśli backend go dodaje
+        val userId = json.userId
+        if (userId != null) userId.toString().toIntOrNull() else null
+    } catch (e: Throwable) {
+        null
+    }
+}
+
 class App : Application() {
 
     private val appState = ObservableValue(Page.HOME)
     private val userRole = ObservableValue<String?>(null)
+    private val currentUserId = ObservableValue<Int?>(null)
 
     private lateinit var loginModal: Modal
     private lateinit var registerModal: Modal
 
     override fun start() {
+        // Przywróć sesję jeśli token istnieje
+        val savedToken = window.localStorage.getItem("jwt")
+        val savedRole = window.localStorage.getItem("userRole")
+        val savedId = window.localStorage.getItem("userId")?.toIntOrNull()
+        if (savedToken != null && savedRole != null) {
+            userRole.value = savedRole
+            currentUserId.value = savedId
+        }
+
         loginModal = createLoginModal()
         registerModal = createRegisterModal()
 
         root("kvapp") {
-            bind(appState) { page ->
-                vPanel(spacing = 0, className = "main-container bg-dark text-white min-vh-100") {
-                    width = 100.vw
-                    buildNavbar()
-
-                    when (page) {
-                        Page.HOME -> buildHomeView()
-                        Page.DANCER_DASHBOARD -> buildDancerDashboard(appState)
-                        Page.CHOREO_DASHBOARD -> buildChoreoDashboard()
-                        Page.ADMIN_PANEL -> buildAdminPanel()
-                        Page.DANCER_TASKS -> buildDancerTasks(appState)
-                        Page.DANCER_SUBMISSIONS -> buildDancerSubmissions(appState)
-                        Page.DANCER_STATS -> buildDancerStats(appState)
-                        Page.CHOREO_QUEUE -> buildChoreoQueue()
-                        Page.CHOREO_TASKS -> buildChoreoTasks()
-                        Page.CHOREO_ARCHIVE -> buildChoreoArchive()
-                        Page.ADMIN_VERIFY -> buildAdminVerify()
-                        Page.ADMIN_USERS -> buildAdminUsers()
-                        Page.ADMIN_MODERATION -> buildAdminModeration()
-                        Page.PLAYER -> buildPlayerView()
+            vPanel(spacing = 0, className = "main-container bg-dark text-white min-vh-100") {
+                width = 100.vw
+                buildNavbar()
+                div(className = "page-content") {
+                    bind(appState) { page ->
+                        when (page) {
+                            Page.HOME -> buildHomeView()
+                            Page.DANCER_DASHBOARD -> buildDancerDashboard(appState)
+                            Page.CHOREO_DASHBOARD -> buildChoreoDashboard()
+                            Page.ADMIN_PANEL -> buildAdminPanel()
+                            Page.DANCER_TASKS -> buildDancerTasks(appState)
+                            Page.DANCER_SUBMISSIONS -> buildDancerSubmissions(appState)
+                            Page.DANCER_STATS -> buildDancerStats(appState)
+                            Page.CHOREO_QUEUE -> buildChoreoQueue()
+                            Page.CHOREO_TASKS -> buildChoreoTasks()
+                            Page.CHOREO_ARCHIVE -> buildChoreoArchive()
+                            Page.ADMIN_VERIFY -> buildAdminVerify()
+                            Page.ADMIN_USERS -> buildAdminUsers()
+                            Page.ADMIN_MODERATION -> buildAdminModeration()
+                            Page.PLAYER -> buildPlayerView()
+                        }
                     }
                 }
             }
@@ -135,7 +164,10 @@ class App : Application() {
                             button("Wyloguj", className = "btn btn-outline-danger btn-sm rounded-pill") {
                                 onClick {
                                     window.localStorage.removeItem("jwt")
+                                    window.localStorage.removeItem("userRole")
+                                    window.localStorage.removeItem("userId")
                                     userRole.value = null
+                                    currentUserId.value = null
                                     appState.value = Page.HOME
                                 }
                             }
@@ -199,17 +231,15 @@ class App : Application() {
     }
 
     // ==========================================
-    // LOGOWANIE Z IDEALNIE WYRÓWNANYM OKIEM
+    // LOGOWANIE
     // ==========================================
     private fun createLoginModal(): Modal {
         val modal = Modal("Zaloguj się", closeButton = true, animation = true)
         modal.vPanel(className = "p-3") {
 
-            // Czysty input dla E-maila
             label("E-mail", className = "form-label text-light mb-1")
             val emailInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control bg-dark text-white border-secondary mb-3")
 
-            // Czysty input dla Hasła spięty w Bootstrapowy Input Group
             label("Hasło", className = "form-label text-light mb-1")
             var passwordInput: io.kvision.form.text.TextInput? = null
 
@@ -218,7 +248,6 @@ class App : Application() {
                     id = "login-pass-input"
                 }
 
-                // Przycisk z okiem idealnie doczepiony z prawej strony
                 button("", icon = "fa-solid fa-eye-slash", className = "btn btn-outline-secondary border-secondary text-muted") {
                     onClick {
                         val input = document.getElementById("login-pass-input") as? HTMLInputElement
@@ -256,6 +285,20 @@ class App : Application() {
 
                         if (token != null && role != null) {
                             window.localStorage.setItem("jwt", token)
+                            window.localStorage.setItem("userRole", role)
+
+                            // Pobierz userId po zalogowaniu — szukaj usera po emailu przez listę
+                            ApiService.fetchUsers().then { users: dynamic ->
+                                val list = users as Array<dynamic>
+                                val found = list.find { it.email?.toString() == email }
+                                val userId = found?.id?.toString()?.toIntOrNull()
+                                if (userId != null) {
+                                    window.localStorage.setItem("userId", userId.toString())
+                                    currentUserId.value = userId
+                                }
+                                null
+                            }.catch { _: Throwable -> null }
+
                             userRole.value = role
                             appState.value = when (role) {
                                 "DANCER" -> Page.DANCER_DASHBOARD
@@ -270,9 +313,8 @@ class App : Application() {
                         }
                         null
                     }.catch { err: Throwable ->
-                        // Wypisujemy błąd do konsoli, żeby wiedzieć co dokładnie padło!
                         console.log("SZCZEGÓŁY BŁĘDU LOGOWANIA:", err)
-                        errorMsg.content = "Błędne dane. (Wciśnij F12 i sprawdź Konsolę by poznać powód!)"
+                        errorMsg.content = "Błędne dane lub brak połączenia."
                         errorMsg.visible = true
                         null
                     }
@@ -295,9 +337,13 @@ class App : Application() {
         return modal
     }
 
+    // ==========================================
+    // CHOREOGRAF
+    // ==========================================
+
     private fun Container.buildChoreoDashboard() {
         div(className = "container py-5 mt-5") {
-            h2("Panel Mentorski (Choreograf)", className = "fw-bold text-primary-dance mb-4")
+            h2("Panel Mentorski (Choreograf)", className = "fw-bold text-primary-dance mb-4 pt-4")
             div(className = "row g-4") {
                 dashboardCard("fa-clock", "Kolejka do oceny", "Filmy oczekujące na feedback.") { appState.value = Page.CHOREO_QUEUE }
                 dashboardCard("fa-plus-circle", "Zarządzanie zadaniami", "Dodawaj wyzwania dla tancerzy.") { appState.value = Page.CHOREO_TASKS }
@@ -307,25 +353,103 @@ class App : Application() {
     }
 
     private fun Container.buildChoreoQueue() {
-        div(className = "container py-5 mt-5") {
-            backButton(appState, Page.CHOREO_DASHBOARD)
-            h2("Kolejka do oceny", className = "fw-bold mb-4")
-            table(className = "table table-dark table-hover align-middle") {
-                thead { tr { th("Tancerz"); th("Zadanie"); th("Data"); th("Akcja") } }
-                tbody {
-                    tr {
-                        td("tancerz@danceapp.pl"); td("Izolacje klatki"); td("Dziś, 14:30")
-                        td { button("Oceń wideo", className = "btn btn-sm dance-btn-primary") { onClick { appState.value = Page.PLAYER } } }
+        val subs = io.kvision.state.ObservableListWrapper<dynamic>()
+        val loading = ObservableValue(true)
+        val errorMsg = ObservableValue("")
+
+        // Pobierz nagrania dla WSZYSTKICH zadań z DataManager
+        fun loadAllSubmissions() {
+            val taskIds = DataManager.globalTasks.map { it.id }.toMutableList()
+            // Dodaj też zadania z backendu — pobierz świeżo
+            ApiService.fetchTasks().then { res: dynamic ->
+                val backendIds = (res as Array<dynamic>).mapNotNull { it.id?.toString()?.toIntOrNull() }
+                backendIds.forEach { id -> if (!taskIds.contains(id)) taskIds.add(id) }
+
+                val promises = taskIds.map { taskId ->
+                    ApiService.fetchSubmissionsForTask(taskId)
+                }
+
+                // Sekwencyjne pobieranie dla każdego taskId
+                fun fetchNext(index: Int) {
+                    if (index >= taskIds.size) {
+                        loading.value = false
+                        return
+                    }
+                    ApiService.fetchSubmissionsForTask(taskIds[index]).then { r: dynamic ->
+                        val list = (r as Array<dynamic>).filter { it.status?.toString() == "SUBMITTED" }
+                        subs.addAll(list)
+                        fetchNext(index + 1)
+                        null
+                    }.catch { _: Throwable ->
+                        fetchNext(index + 1)
+                        null
                     }
                 }
+                fetchNext(0)
+                null
+            }.catch { _: Throwable ->
+                // Fallback — pobierz tylko dla znanych zadań lokalnych
+                fun fetchNext(index: Int) {
+                    if (index >= taskIds.size) { loading.value = false; return }
+                    ApiService.fetchSubmissionsForTask(taskIds[index]).then { r: dynamic ->
+                        val list = (r as Array<dynamic>).filter { it.status?.toString() == "SUBMITTED" }
+                        subs.addAll(list)
+                        fetchNext(index + 1)
+                        null
+                    }.catch { _: Throwable -> fetchNext(index + 1); null }
+                }
+                fetchNext(0)
+                null
             }
+        }
+
+        loadAllSubmissions()
+
+        div(className = "container py-5 mt-5 pt-5") {
+            backButton(appState, Page.CHOREO_DASHBOARD)
+            h2("Kolejka do oceny", className = "fw-bold mb-4")
+            div {
+                bind(loading) { isLoading ->
+                    if (isLoading) {
+                        div(className = "text-center py-5") {
+                            tag(TAG.DIV, className = "spinner-border text-primary-dance") { setAttribute("role", "status") }
+                            p("Ładowanie nagrań...", className = "text-muted mt-3")
+                        }
+                    } else {
+                        table(className = "table table-dark table-hover align-middle") {
+                            thead { tr { th("ID Nagrania"); th("Tancerz ID"); th("Zadanie ID"); th("Data"); th("Status"); th("Akcja") } }
+                            tbody {
+                                bind(subs) { list ->
+                                    if (list.isEmpty()) {
+                                        tr { td("Hura! Brak filmów do oceny.") { setAttribute("colspan", "6") } }
+                                    }
+                                    list.forEach { s ->
+                                        tr {
+                                            td("Wideo #${s.id}")
+                                            td("Tancerz #${s.dancerId}")
+                                            td("Zadanie #${s.taskId}")
+                                            td(s.sentAt?.toString()?.substring(0, 10) ?: "—")
+                                            td { span("Oczekuje", className = "badge bg-warning text-dark") }
+                                            td {
+                                                button("Oceń wideo", className = "btn btn-sm dance-btn-primary") {
+                                                    onClick { appState.value = Page.PLAYER }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end wrapper div
         }
     }
 
     private fun Container.buildChoreoTasks() {
         val selected = io.kvision.state.ObservableListWrapper<String>()
 
-        div(className = "container py-5 mt-5") {
+        div(className = "container py-5 mt-5 pt-5") {
             backButton(appState, Page.CHOREO_DASHBOARD)
             div(className = "row") {
                 div(className = "col-md-7") {
@@ -508,31 +632,322 @@ class App : Application() {
         modal.show()
     }
 
-    private fun Container.buildChoreoArchive() { buildPlaceholderView(appState, "Archiwum", Page.CHOREO_DASHBOARD) }
+    private fun Container.buildChoreoArchive() {
+        val subs = io.kvision.state.ObservableListWrapper<dynamic>()
+        val loading = ObservableValue(true)
+
+        fun loadGraded() {
+            val taskIds = DataManager.globalTasks.map { it.id }.toMutableList()
+            ApiService.fetchTasks().then { res: dynamic ->
+                val backendIds = (res as Array<dynamic>).mapNotNull { it.id?.toString()?.toIntOrNull() }
+                backendIds.forEach { id -> if (!taskIds.contains(id)) taskIds.add(id) }
+
+                fun fetchNext(index: Int) {
+                    if (index >= taskIds.size) { loading.value = false; return }
+                    ApiService.fetchSubmissionsForTask(taskIds[index]).then { r: dynamic ->
+                        val list = (r as Array<dynamic>).filter { it.status?.toString() == "GRADED" }
+                        subs.addAll(list)
+                        fetchNext(index + 1)
+                        null
+                    }.catch { _: Throwable -> fetchNext(index + 1); null }
+                }
+                fetchNext(0)
+                null
+            }.catch { _: Throwable ->
+                fun fetchNext(index: Int) {
+                    if (index >= taskIds.size) { loading.value = false; return }
+                    ApiService.fetchSubmissionsForTask(taskIds[index]).then { r: dynamic ->
+                        val list = (r as Array<dynamic>).filter { it.status?.toString() == "GRADED" }
+                        subs.addAll(list)
+                        fetchNext(index + 1)
+                        null
+                    }.catch { _: Throwable -> fetchNext(index + 1); null }
+                }
+                fetchNext(0)
+                null
+            }
+        }
+
+        loadGraded()
+
+        div(className = "container py-5 mt-5 pt-5") {
+            backButton(appState, Page.CHOREO_DASHBOARD)
+            h2("Archiwum ocenionych nagrań", className = "fw-bold mb-4")
+            div {
+                bind(loading) { isLoading ->
+                    if (isLoading) {
+                        div(className = "text-center py-5") {
+                            tag(TAG.DIV, className = "spinner-border text-primary-dance") { setAttribute("role", "status") }
+                            p("Ładowanie archiwum...", className = "text-muted mt-3")
+                        }
+                    } else {
+                        table(className = "table table-dark table-hover align-middle") {
+                            thead { tr { th("ID Nagrania"); th("Tancerz ID"); th("Zadanie ID"); th("Ocena"); th("Akcja") } }
+                            tbody {
+                                bind(subs) { list ->
+                                    if (list.isEmpty()) {
+                                        tr { td("Jeszcze nic nie oceniłeś.") { setAttribute("colspan", "5") } }
+                                    }
+                                    list.forEach { s ->
+                                        tr {
+                                            td("Wideo #${s.id}")
+                                            td("Tancerz #${s.dancerId}")
+                                            td("Zadanie #${s.taskId}")
+                                            td {
+                                                val score = s.score?.toString()
+                                                if (score != null) span(score, className = "badge bg-success")
+                                                else span("Ocenione", className = "badge bg-success")
+                                            }
+                                            td {
+                                                button("Zobacz ocenę", className = "btn btn-sm btn-outline-light") {
+                                                    onClick { appState.value = Page.PLAYER }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end wrapper div
+        }
+    }
+
+    // ==========================================
+    // ADMIN
+    // ==========================================
 
     private fun Container.buildAdminPanel() {
         div(className = "container py-5 mt-5") {
-            h2("Panel Admina", className = "fw-bold text-danger mb-4")
+            h2("Panel Admina", className = "fw-bold text-danger mb-4 pt-4")
             div(className = "row g-4") {
-                dashboardCard("fa-user-check", "Zatwierdzanie", "") { appState.value = Page.ADMIN_VERIFY }
-                dashboardCard("fa-users-cog", "Użytkownicy", "") { appState.value = Page.ADMIN_USERS }
-                dashboardCard("fa-database", "Moderacja", "") { appState.value = Page.ADMIN_MODERATION }
+                dashboardCard("fa-user-check", "Zatwierdzanie kont", "Aktywuj lub dezaktywuj użytkowników.") { appState.value = Page.ADMIN_VERIFY }
+                dashboardCard("fa-users-cog", "Użytkownicy", "Lista wszystkich zarejestrowanych kont.") { appState.value = Page.ADMIN_USERS }
+                dashboardCard("fa-database", "Moderacja treści", "Usuń niepożądane nagrania lub komentarze.") { appState.value = Page.ADMIN_MODERATION }
             }
         }
     }
 
-    private fun Container.buildAdminVerify() { div(className = "container py-5 mt-5") { backButton(appState, Page.ADMIN_PANEL); h2("Zatwierdzanie") } }
-    private fun Container.buildAdminUsers() { div(className = "container py-5 mt-5") { backButton(appState, Page.ADMIN_PANEL); h2("Użytkownicy") } }
-    private fun Container.buildAdminModeration() {
-        div(className = "container py-5 mt-5") {
-            backButton(appState, Page.ADMIN_PANEL); h2("Moderacja treści")
-            button("Usuń nagranie #1", className = "btn btn-danger") { onClick { ApiService.deleteSubmissionAPI(1) } }
+    private fun Container.buildAdminVerify() {
+        val usersList = io.kvision.state.ObservableListWrapper<dynamic>()
+        val loading = ObservableValue(true)
+
+        ApiService.fetchUsers().then { res: dynamic ->
+            usersList.addAll(res as Array<dynamic>)
+            loading.value = false
+            null
+        }.catch { _: Throwable ->
+            loading.value = false
+            null
+        }
+
+        div(className = "container py-5 mt-5 pt-5") {
+            backButton(appState, Page.ADMIN_PANEL)
+            h2("Zatwierdzanie kont", className = "fw-bold mb-4")
+            div {
+                bind(loading) { isLoading ->
+                    if (isLoading) {
+                        div(className = "text-center py-5") {
+                            tag(TAG.DIV, className = "spinner-border text-danger") { setAttribute("role", "status") }
+                            p("Ładowanie użytkowników...", className = "text-muted mt-3")
+                        }
+                    } else {
+                        table(className = "table table-dark table-hover") {
+                            thead { tr { th("ID"); th("Email"); th("Rola"); th("Status"); th("Akcja") } }
+                            tbody {
+                                bind(usersList) { list ->
+                                    if (list.isEmpty()) {
+                                        tr { td("Brak użytkowników.") { setAttribute("colspan", "5") } }
+                                    }
+                                    list.forEach { u ->
+                                        tr {
+                                            td(u.id?.toString() ?: "—")
+                                            td(u.email?.toString() ?: "—")
+                                            td(u.role?.toString() ?: "—")
+                                            td {
+                                                val active = u.isActive == true
+                                                span(if (active) "Aktywny" else "Nieaktywny",
+                                                    className = if (active) "badge bg-success" else "badge bg-danger")
+                                            }
+                                            td {
+                                                val userId = u.id?.toString()?.toIntOrNull()
+                                                val active = u.isActive == true
+                                                if (userId != null) {
+                                                    button(if (active) "Dezaktywuj" else "Aktywuj",
+                                                        className = if (active) "btn btn-sm btn-outline-danger" else "btn btn-sm btn-outline-success") {
+                                                        onClick {
+                                                            ApiService.setUserStatus(userId, !active).then { _: dynamic ->
+                                                                // Odśwież listę
+                                                                usersList.clear()
+                                                                ApiService.fetchUsers().then { res: dynamic ->
+                                                                    usersList.addAll(res as Array<dynamic>)
+                                                                    null
+                                                                }.catch { _: Throwable -> null }
+                                                                null
+                                                            }.catch { _: Throwable ->
+                                                                window.alert("Błąd zmiany statusu użytkownika.")
+                                                                null
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end wrapper div
         }
     }
 
+    private fun Container.buildAdminUsers() {
+        val usersList = io.kvision.state.ObservableListWrapper<dynamic>()
+        val loading = ObservableValue(true)
+
+        ApiService.fetchUsers().then { res: dynamic ->
+            usersList.addAll(res as Array<dynamic>)
+            loading.value = false
+            null
+        }.catch { _: Throwable ->
+            loading.value = false
+            null
+        }
+
+        div(className = "container py-5 mt-5 pt-5") {
+            backButton(appState, Page.ADMIN_PANEL)
+            h2("Użytkownicy Platformy", className = "mb-4")
+            div {
+                bind(loading) { isLoading ->
+                    if (isLoading) {
+                        div(className = "text-center py-5") {
+                            tag(TAG.DIV, className = "spinner-border text-danger") { setAttribute("role", "status") }
+                            p("Ładowanie użytkowników...", className = "text-muted mt-3")
+                        }
+                    } else {
+                        table(className = "table table-dark table-hover") {
+                            thead { tr { th("ID"); th("Imię"); th("Nazwisko"); th("Email"); th("Rola"); th("Aktywny") } }
+                            tbody {
+                                bind(usersList) { list ->
+                                    if (list.isEmpty()) {
+                                        tr { td("Brak użytkowników lub brak dostępu.") { setAttribute("colspan", "6") } }
+                                    }
+                                    list.forEach { u ->
+                                        tr {
+                                            td(u.id?.toString() ?: "—")
+                                            td(u.firstName?.toString() ?: "—")
+                                            td(u.lastName?.toString() ?: "—")
+                                            td(u.email?.toString() ?: "—")
+                                            td(u.role?.toString() ?: "—")
+                                            td(if (u.isActive == true) "Tak" else "Nie")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end wrapper div
+        }
+    }
+
+    private fun Container.buildAdminModeration() {
+        val submissionsList = io.kvision.state.ObservableListWrapper<dynamic>()
+        val loading = ObservableValue(true)
+
+        // Pobierz wszystkie nagrania ze wszystkich zadań
+        fun loadAll() {
+            val taskIds = DataManager.globalTasks.map { it.id }.toMutableList()
+            ApiService.fetchTasks().then { res: dynamic ->
+                val backendIds = (res as Array<dynamic>).mapNotNull { it.id?.toString()?.toIntOrNull() }
+                backendIds.forEach { id -> if (!taskIds.contains(id)) taskIds.add(id) }
+
+                fun fetchNext(index: Int) {
+                    if (index >= taskIds.size) { loading.value = false; return }
+                    ApiService.fetchSubmissionsForTask(taskIds[index]).then { r: dynamic ->
+                        submissionsList.addAll(r as Array<dynamic>)
+                        fetchNext(index + 1)
+                        null
+                    }.catch { _: Throwable -> fetchNext(index + 1); null }
+                }
+                fetchNext(0)
+                null
+            }.catch { _: Throwable ->
+                loading.value = false
+                null
+            }
+        }
+
+        loadAll()
+
+        div(className = "container py-5 mt-5 pt-5") {
+            backButton(appState, Page.ADMIN_PANEL)
+            h2("Moderacja treści", className = "fw-bold mb-4")
+            div {
+                bind(loading) { isLoading ->
+                    if (isLoading) {
+                        div(className = "text-center py-5") {
+                            tag(TAG.DIV, className = "spinner-border text-danger") { setAttribute("role", "status") }
+                            p("Ładowanie nagrań...", className = "text-muted mt-3")
+                        }
+                    } else {
+                        table(className = "table table-dark table-hover align-middle") {
+                            thead { tr { th("ID"); th("Tancerz"); th("Zadanie"); th("Status"); th("Akcja") } }
+                            tbody {
+                                bind(submissionsList) { list ->
+                                    if (list.isEmpty()) {
+                                        tr { td("Brak nagrań w systemie.") { setAttribute("colspan", "5") } }
+                                    }
+                                    list.forEach { s ->
+                                        tr {
+                                            td("Wideo #${s.id}")
+                                            td("Tancerz #${s.dancerId}")
+                                            td("Zadanie #${s.taskId}")
+                                            td {
+                                                val status = s.status?.toString() ?: "SUBMITTED"
+                                                span(status, className = if (status == "GRADED") "badge bg-success" else "badge bg-warning text-dark")
+                                            }
+                                            td {
+                                                val subId = s.id?.toString()?.toIntOrNull()
+                                                if (subId != null) {
+                                                    button("Usuń", className = "btn btn-sm btn-danger") {
+                                                        onClick {
+                                                            if (window.confirm("Na pewno chcesz usunąć nagranie #$subId?")) {
+                                                                ApiService.deleteSubmissionAPI(subId)
+                                                                submissionsList.removeAll { it.id?.toString()?.toIntOrNull() == subId }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } // end wrapper div
+        }
+    }
+
+    // ==========================================
+    // PLAYER (WSPÓLNY)
+    // ==========================================
+
     private fun Container.buildPlayerView() {
-        div(className = "container-fluid py-5 mt-5 px-4") {
-            backButton(appState, Page.CHOREO_QUEUE)
+        div(className = "container-fluid py-5 mt-5 pt-5 px-4") {
+            // Przycisk Wróć zależy od roli
+            val backPage = when (userRole.value) {
+                "CHOREOGRAPHER" -> Page.CHOREO_QUEUE
+                "DANCER" -> Page.DANCER_SUBMISSIONS
+                "ADMIN" -> Page.ADMIN_MODERATION
+                else -> Page.HOME
+            }
+            backButton(appState, backPage)
             h2("Analiza Video", className = "fw-bold mb-4")
             div(className = "row") {
                 div(className = "col-lg-8") {
