@@ -18,10 +18,10 @@ fun Container.dashboardCard(icon: String, title: String, desc: String, action: (
     }
 }
 
-// Uniwersalny przycisk powrotu (Teraz większy, ze strzałką i marginesem!)
+// Uniwersalny przycisk powrotu - ZMIANA NA FIOLETOWY (dance-btn-primary)
 fun Container.backButton(appState: ObservableValue<Page>, targetPage: Page) {
     div(className = "mb-4") {
-        button("⬅ Wróć", className = "btn btn-outline-light rounded-pill px-4 fw-bold") {
+        button("⬅ Wróć", className = "btn dance-btn-primary rounded-pill px-4 fw-bold") {
             onClick { appState.value = targetPage }
         }
     }
