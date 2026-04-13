@@ -32,7 +32,6 @@ object ApiService {
         return fetchUsersWithToken(token())
     }
 
-    // Wersja z jawnym tokenem — używana zaraz po logowaniu żeby uniknąć race condition
     fun fetchUsersWithToken(jwt: String): kotlin.js.Promise<dynamic> {
         return window.fetch("$BASE/users", org.w3c.fetch.RequestInit(
             method = "GET",
@@ -43,7 +42,6 @@ object ApiService {
         }
     }
 
-    // Rejestracja nowego użytkownika — POST /users (publiczny endpoint)
     fun registerUser(firstName: String, lastName: String, email: String, password: String): kotlin.js.Promise<dynamic> {
         return window.fetch("$BASE/users", org.w3c.fetch.RequestInit(
             method = "POST",
@@ -53,7 +51,7 @@ object ApiService {
                 "lastName" to lastName,
                 "email" to email,
                 "password" to password,
-                "role" to "DANCER"   // domyślna rola przy rejestracji
+                "role" to "DANCER"
             ))
         )).then { response ->
             if (response.ok) response.json()
@@ -71,6 +69,26 @@ object ApiService {
         )).then { response ->
             if (response.ok) response
             else throw Exception("Błąd zmiany statusu: ${response.status}")
+        }
+    }
+
+    fun updateUserRole(userId: Int, role: String): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/admin/users/$userId/role?role=$role", org.w3c.fetch.RequestInit(
+            method = "PATCH",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
+        )).then { response ->
+            if (response.ok) response
+            else throw Exception("Błąd zmiany roli: ${response.status}")
+        }
+    }
+
+    fun deleteUser(userId: Int): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/admin/users/$userId", org.w3c.fetch.RequestInit(
+            method = "DELETE",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
+        )).then { response ->
+            if (response.ok) response
+            else throw Exception("Błąd usuwania użytkownika: ${response.status}")
         }
     }
 
@@ -109,7 +127,24 @@ object ApiService {
         }
     }
 
-    // NOWA FUNKCJA DO USUWANIA ZADAŃ PRZEZ CHOREOGRAFA
+    fun updateTask(taskId: Int, title: String, desc: String, deadline: String): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/tasks/$taskId", org.w3c.fetch.RequestInit(
+            method = "PUT",
+            headers = kotlin.js.json(
+                "Authorization" to "Bearer ${token()}",
+                "Content-Type" to "application/json"
+            ),
+            body = JSON.stringify(kotlin.js.json(
+                "title" to title,
+                "description" to desc,
+                "deadline" to deadline
+            ))
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd edycji zadania: ${response.status}")
+        }
+    }
+
     fun deleteTaskAPI(taskId: Int): kotlin.js.Promise<dynamic> {
         return window.fetch("$BASE/tasks/$taskId", org.w3c.fetch.RequestInit(
             method = "DELETE",
@@ -178,6 +213,16 @@ object ApiService {
         }
     }
 
+    fun resetSubmissionStatus(submissionId: Int): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/submissions/$submissionId/reset", org.w3c.fetch.RequestInit(
+            method = "PUT",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd resetowania statusu: ${response.status}")
+        }
+    }
+
     fun deleteSubmissionAPI(id: Int): kotlin.js.Promise<dynamic> {
         return window.fetch("$BASE/submissions/$id", org.w3c.fetch.RequestInit(
             method = "DELETE",
@@ -202,6 +247,30 @@ object ApiService {
         }
     }
 
+    fun deleteCommentAPI(commentId: Int): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/comments/$commentId", org.w3c.fetch.RequestInit(
+            method = "DELETE",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
+        )).then { response ->
+            if (response.ok) response
+            else throw Exception("Błąd usuwania komentarza: ${response.status}")
+        }
+    }
+
+    fun updateComment(commentId: Int, content: String): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/comments/$commentId", org.w3c.fetch.RequestInit(
+            method = "PATCH",
+            headers = kotlin.js.json(
+                "Authorization" to "Bearer ${token()}",
+                "Content-Type" to "application/json"
+            ),
+            body = JSON.stringify(kotlin.js.json("content" to content))
+        )).then { response ->
+            if (response.ok) response
+            else throw Exception("Błąd edycji komentarza: ${response.status}")
+        }
+    }
+
     fun addComment(submissionId: Int, authorId: Int, timestampSeconds: Int, content: String): kotlin.js.Promise<dynamic> {
         return window.fetch("$BASE/comments", org.w3c.fetch.RequestInit(
             method = "POST",
@@ -218,6 +287,91 @@ object ApiService {
         )).then { response ->
             if (response.ok) response.json()
             else throw Exception("Błąd dodawania komentarza: ${response.status}")
+        }
+    }
+
+    // ==========================================
+    // OGŁOSZENIA (Z multimediami i edycją)
+    // ==========================================
+
+    fun fetchAnnouncements(): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/announcements", org.w3c.fetch.RequestInit(
+            method = "GET"
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd pobierania ogłoszeń")
+        }
+    }
+
+    fun createAnnouncement(title: String, content: String, type: String, file: dynamic): kotlin.js.Promise<dynamic> {
+        val formData = org.w3c.xhr.FormData()
+        formData.append("title", title)
+        formData.append("content", content)
+        formData.append("type", type)
+        if (file != null) formData.append("file", file as Blob)
+
+        return window.fetch("$BASE/admin/announcements", org.w3c.fetch.RequestInit(
+            method = "POST",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}"),
+            body = formData
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd tworzenia ogłoszenia: ${response.status}")
+        }
+    }
+
+    fun updateAnnouncement(id: Int, title: String, content: String, type: String): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/admin/announcements/$id", org.w3c.fetch.RequestInit(
+            method = "PUT",
+            headers = kotlin.js.json(
+                "Authorization" to "Bearer ${token()}",
+                "Content-Type" to "application/json"
+            ),
+            body = JSON.stringify(kotlin.js.json("title" to title, "content" to content, "type" to type))
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd edycji ogłoszenia: ${response.status}")
+        }
+    }
+
+    fun deleteAnnouncement(id: Int): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/admin/announcements/$id", org.w3c.fetch.RequestInit(
+            method = "DELETE",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
+        )).then { response ->
+            if (response.ok) response
+            else throw Exception("Błąd usuwania ogłoszenia: ${response.status}")
+        }
+    }
+
+    // ==========================================
+    // CZAT (Messenger Style)
+    // ==========================================
+
+    fun fetchGlobalChat(): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/chat", org.w3c.fetch.RequestInit(
+            method = "GET",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd pobierania czatu")
+        }
+    }
+
+    fun sendChatMessage(content: String, recipientIds: List<Int>? = null): kotlin.js.Promise<dynamic> {
+        val bodyData = kotlin.js.json("content" to content)
+        if (recipientIds != null) bodyData["recipientIds"] = recipientIds.toTypedArray()
+
+        return window.fetch("$BASE/chat", org.w3c.fetch.RequestInit(
+            method = "POST",
+            headers = kotlin.js.json(
+                "Authorization" to "Bearer ${token()}",
+                "Content-Type" to "application/json"
+            ),
+            body = JSON.stringify(bodyData)
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd wysyłania wiadomości: ${response.status}")
         }
     }
 }

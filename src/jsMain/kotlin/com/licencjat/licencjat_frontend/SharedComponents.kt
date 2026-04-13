@@ -8,6 +8,9 @@ import io.kvision.state.ObservableValue
 // Uniwersalny kafelek nawigacyjny
 fun Container.dashboardCard(icon: String, title: String, desc: String, action: () -> Unit) {
     div(className = "col-md-4") {
+        setAttribute("tabindex", "0")
+        setAttribute("role", "button")
+        setAttribute("aria-label", title)
         div(className = "card bg-dark text-white border-secondary h-100 p-4 hover-card text-center") {
             setStyle("cursor", "pointer")
             onClick { action() }
@@ -21,10 +24,14 @@ fun Container.dashboardCard(icon: String, title: String, desc: String, action: (
 // Uniwersalny przycisk powrotu - ZMIANA NA FIOLETOWY (dance-btn-primary)
 fun Container.backButton(appState: ObservableValue<Page>, targetPage: Page) {
     div(className = "mb-4") {
-        button("⬅ Wróć", className = "btn dance-btn-primary rounded-pill px-4 fw-bold") {
-            onClick { appState.value = targetPage }
+        button(I18n.tr("⬅ Wróć", "⬅ Back"), className = "btn dance-btn-primary rounded-pill px-4 fw-bold") {
+            onClick {
+                KeyboardManager.pop()
+                appState.value = targetPage
+            }
         }
     }
+    KeyboardManager.push { appState.value = targetPage }
 }
 
 // Tymczasowy widok dla zakładek w budowie
@@ -33,8 +40,8 @@ fun Container.buildPlaceholderView(appState: ObservableValue<Page>, title: Strin
         backButton(appState, backPage)
         h2(title, className = "fw-bold mb-3")
         div(className = "card bg-dark text-white border-secondary p-5 text-center") {
-            h4("Zakładka w budowie \uD83D\uDEA7", className = "text-muted")
-            p("Tutaj pojawią się dane z backendu.", className = "text-muted small mb-0")
+            h4(I18n.tr("Zakładka w budowie \uD83D\uDEA7", "Under construction \uD83D\uDEA7"), className = "text-muted")
+            p(I18n.tr("Tutaj pojawią się dane z backendu.", "Backend data will appear here."), className = "text-muted small mb-0")
         }
     }
 }
