@@ -310,7 +310,8 @@ object ApiService {
         formData.append("type", type)
         if (file != null) formData.append("file", file as Blob)
 
-        return window.fetch("$BASE/admin/announcements", org.w3c.fetch.RequestInit(
+        // POPRAWA: Zmieniono "/admin/announcements" na "/announcements"
+        return window.fetch("$BASE/announcements", org.w3c.fetch.RequestInit(
             method = "POST",
             headers = kotlin.js.json("Authorization" to "Bearer ${token()}"),
             body = formData
@@ -321,7 +322,8 @@ object ApiService {
     }
 
     fun updateAnnouncement(id: Int, title: String, content: String, type: String): kotlin.js.Promise<dynamic> {
-        return window.fetch("$BASE/admin/announcements/$id", org.w3c.fetch.RequestInit(
+        // POPRAWA: Zmieniono "/admin/announcements" na "/announcements"
+        return window.fetch("$BASE/announcements/$id", org.w3c.fetch.RequestInit(
             method = "PUT",
             headers = kotlin.js.json(
                 "Authorization" to "Bearer ${token()}",
@@ -335,7 +337,8 @@ object ApiService {
     }
 
     fun deleteAnnouncement(id: Int): kotlin.js.Promise<dynamic> {
-        return window.fetch("$BASE/admin/announcements/$id", org.w3c.fetch.RequestInit(
+        // POPRAWA: Zmieniono "/admin/announcements" na "/announcements"
+        return window.fetch("$BASE/announcements/$id", org.w3c.fetch.RequestInit(
             method = "DELETE",
             headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
         )).then { response ->

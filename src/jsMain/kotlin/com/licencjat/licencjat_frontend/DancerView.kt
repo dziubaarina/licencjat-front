@@ -10,11 +10,11 @@ import kotlinx.browser.window
 
 fun Container.buildDancerDashboard(appState: ObservableValue<Page>) {
     div(className = "container py-5 mt-5") {
-        h2("Panel Tancerza", className = "fw-bold mb-4 pt-4")
-        div(className = "row g-4") {
-            dashboardCard("fa-list-check", "Dostępne zadania", "Wybierz wyzwanie i obejrzyj instrukcje.") { appState.value = Page.DANCER_TASKS }
-            dashboardCard("fa-video", "Moje nagrania", "Przeglądaj wgrane filmy i statusy ocen.") { appState.value = Page.DANCER_SUBMISSIONS }
-            dashboardCard("fa-chart-line", "Statystyki", "Śledź swój progres i wyniki.") { appState.value = Page.DANCER_STATS }
+        h2(I18n.tr("Panel Tancerza", "Dancer Panel"), className = "fw-bold text-primary-dance mb-4 pt-4")
+        div(className = "row g-4 justify-content-center") {
+            dashboardCard("fa-list-check", I18n.tr("Dostępne zadania", "Available tasks"), I18n.tr("Wybierz wyzwanie i obejrzyj instrukcje.", "Choose a challenge and watch instructions.")) { appState.value = Page.DANCER_TASKS }
+            dashboardCard("fa-video", I18n.tr("Moje nagrania", "My recordings"), I18n.tr("Przeglądaj wgrane filmy i statusy ocen.", "Browse uploaded videos and grade statuses.")) { appState.value = Page.DANCER_SUBMISSIONS }
+            dashboardCard("fa-chart-line", I18n.tr("Statystyki", "Statistics"), I18n.tr("Śledź swój progres i wyniki.", "Track your progress and results.")) { appState.value = Page.DANCER_STATS }
             dashboardCard("fa-comments", I18n.tr("Wiadomości", "Messages"), I18n.tr("Messenger społeczności.", "Community messenger.")) { appState.value = Page.CHAT}
         }
     }
@@ -24,15 +24,170 @@ fun Container.buildDancerDashboard(appState: ObservableValue<Page>) {
 // DOSTĘPNE ZADANIA (Podział: Oczekujące / Wykonane)
 // ==========================================
 fun Container.buildDancerTasks(appState: ObservableValue<Page>) {
+    val myId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
     val tasks = io.kvision.state.ObservableListWrapper<dynamic>()
     val subs = io.kvision.state.ObservableListWrapper<dynamic>()
     val loading = ObservableValue(true)
-    val myDancerId = window.localStorage.getItem("userId") ?: "1"
 
-    // Pobieramy zadania i submisje by wiedzieć, co zostało już wykonane
+    ApiService.fetchTasks().then<dynamic> { res: dynamic ->
+        tasks.addAll(res as Array<dynamic>)
+        ApiService.fetchSubmissionsForDancer(myId).then<dynamic> { res2: dynamic ->
+            subs.addAll(res2 as Array<dynamic>)
+            loading.value = false
+            null
+        }.catch<dynamic> { _: Throwable -> loading.value = false; null }
+        null
+    }.catch<dynamic> { _: Throwable -> loading.value = false; null }
+
+    div(className = "container py-5 mt-5 pt-5") {
+        backButton(appState, Page.DANCER_DASHBOARD)
+        h2(I18n.tr("Dostępne zadania", "Available tasks"), className = "fw-bold mb-4")
+
+        div {
+            bind(loading) { isLoading ->
+                if (isLoading) {
+                    div(className = "text-center py-5") {
+                        tag(TAG.DIV, className = "spinner-border text-primary-dance") { setAttribute("role", "status") }
+                    }
+                } else {
+                    bind(tasks) { taskList ->
+                        bind(subs) { subList ->
+                            val subTaskIds = subList.mapNotNull { it.taskId?.toString()?.toIntOrNull() }.toSet()
+
+                            val doneTasks = taskList.filter { it.id?.toString()?.toIntOrNull() in subTaskIds }
+                            val pendingTasks = taskList.filter { it.id?.toString()?.toIntOrNull() !in subTaskIds }
+
+                            div(className = "row g-4") {
+                                // KOLUMNA: Oczekujące
+                                div(className = "col-md-6") {
+                                    h4(I18n.tr("Oczekujące wyzwania", "Pending challenges"), className = "text-warning mb-3")
+                                    if (pendingTasks.isEmpty()) {
+                                        p(I18n.tr("Nie masz obecnie nowych zadań do wykonania.", "You currently have no new tasks to complete."), className = "text-muted")
+                                    } else {
+                                        ul(className = "list-group bg-dark shadow-sm") {
+                                            pendingTasks.forEach { t ->
+                                                val tId = t.id?.toString()?.toIntOrNull() ?: 0
+                                                val title = t.title?.toString() ?: I18n.tr("Bez tytułu", "No title")
+                                                val desc = t.description?.toString() ?: ""
+                                                val deadline = t.deadline?.toString()?.take(16)?.replace("T", " ") ?: ""
+                                                val instrUrl = t.instructionVideoUrl?.toString() ?: ""
+
+                                                li(className = "list-group-item bg-dark border-secondary mb-2 rounded") {
+                                                    div(className = "d-flex flex-column h-100") {
+                                                        div {
+                                                            h6(title, className = "fw-bold text-white mb-1")
+                                                            p(I18n.tr("Termin: ", "Deadline: ") + deadline, className = "text-danger small fw-bold mb-2")
+                                                            p(desc, className = "text-muted small mb-3")
+                                                        }
+                                                        div(className = "mt-auto pt-2 border-top border-secondary") {
+                                                            tag(TAG.BUTTON, I18n.tr("Szczegóły & Opublikuj Nagranie", "Details & Publish Recording"), className = "btn btn-sm dance-btn-primary w-100 fw-bold") {
+                                                                onClick {
+                                                                    showTaskDetailsModal(tId, title, desc, deadline, instrUrl) { appState.value = Page.DANCER_SUBMISSIONS }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // KOLUMNA: Wykonane
+                                div(className = "col-md-6") {
+                                    h4(I18n.tr("Przesłane (Oczekują na ocenę)", "Submitted (Awaiting grading)"), className = "text-success mb-3 mt-4 mt-md-0")
+                                    if (doneTasks.isEmpty()) {
+                                        p(I18n.tr("Nie przesłałeś jeszcze żadnych zadań.", "You haven't submitted any tasks yet."), className = "text-muted")
+                                    } else {
+                                        ul(className = "list-group bg-dark shadow-sm") {
+                                            doneTasks.forEach { t ->
+                                                val title = t.title?.toString() ?: I18n.tr("Zadanie", "Task")
+                                                val deadline = t.deadline?.toString()?.take(16)?.replace("T", " ") ?: ""
+
+                                                li(className = "list-group-item bg-dark border-secondary mb-2 rounded opacity-75") {
+                                                    div {
+                                                        h6(title, className = "fw-bold text-white mb-1")
+                                                        p(I18n.tr("Termin zadania: ", "Task deadline: ") + deadline, className = "text-muted small mb-2")
+                                                        span(I18n.tr("✔ Nagranie przesłane", "✔ Recording submitted"), className = "badge bg-success")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
+// MODAL SZCZEGÓŁÓW ZADANIA I WGRYWANIA
+// ==========================================
+private fun showTaskDetailsModal(taskId: Int, title: String, desc: String, deadline: String, instrUrl: String, onUploaded: () -> Unit) {
+    val modal = Modal(I18n.tr("Zadanie: ", "Task: ") + title, closeButton = true, animation = true)
+    modal.div(className = "p-3") {
+        p(desc.ifBlank { I18n.tr("Brak opisu dla tego zadania.", "No description for this task.") }, className = "text-light mb-3")
+
+        if (instrUrl.isNotBlank()) {
+            h6(I18n.tr("Wideo instruktora:", "Instructor video:"), className = "fw-bold text-primary-dance mb-2")
+            val fullUrl = toVideoUrl(instrUrl)
+            tag(TAG.VIDEO, className = "w-100 rounded border border-secondary mb-4 bg-black") {
+                setAttribute("controls", "controls")
+                setAttribute("style", "max-height:300px;")
+                tag(TAG.SOURCE) { setAttribute("src", fullUrl) }
+            }
+        }
+
+        div(className = "bg-dark border border-secondary p-3 rounded text-center") {
+            h6(I18n.tr("Twoja kolej!", "Your turn!"), className = "fw-bold text-warning mb-2")
+            p(I18n.tr("Nagraj swoje wykonanie i wyślij je choreografowi. Upewnij się, że mieścisz się w terminie (", "Record your performance and send it to the choreographer. Make sure you meet the deadline (") + deadline + ").", className = "small text-muted mb-3")
+
+            val fileInput = tag(TAG.INPUT, className = "form-control mb-3") {
+                setAttribute("type", "file")
+                setAttribute("accept", "video/*")
+            }
+
+            tag(TAG.BUTTON, I18n.tr("Wyślij moje nagranie", "Send my recording"), className = "btn dance-btn-primary w-100 fw-bold") {
+                onClick {
+                    val files = fileInput.getElement()?.asDynamic().files
+                    if (files != null && files.length > 0) {
+                        val file = files[0]
+                        val myId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
+                        ApiService.uploadVideoForTask(file, taskId, myId).then<dynamic> {
+                            modal.hide()
+                            showToast(I18n.tr("✔ Super! Wideo wysłane. Oczekuj na feedback.", "✔ Great! Video sent. Wait for feedback."))
+                            onUploaded()
+                            null
+                        }.catch<dynamic> { _: Throwable ->
+                            window.alert(I18n.tr("Wystąpił błąd podczas wysyłania nagrania.", "An error occurred while sending the recording."))
+                            null
+                        }
+                    } else {
+                        window.alert(I18n.tr("Najpierw wybierz plik wideo!", "Choose a video file first!"))
+                    }
+                }
+            }
+        }
+    }
+    modal.show()
+}
+
+// ==========================================
+// MOJE NAGRANIA (TANCERZ)
+// ==========================================
+fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
+    val myId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
+    val subs = io.kvision.state.ObservableListWrapper<dynamic>()
+    val tasks = io.kvision.state.ObservableListWrapper<dynamic>()
+    val loading = ObservableValue(true)
+
     ApiService.fetchTasks().then<dynamic> { resTasks: dynamic ->
         tasks.addAll(resTasks as Array<dynamic>)
-        ApiService.fetchSubmissionsForDancer(myDancerId.toIntOrNull() ?: 1).then<dynamic> { resSubs: dynamic ->
+        ApiService.fetchSubmissionsForDancer(myId).then<dynamic> { resSubs: dynamic ->
             subs.addAll(resSubs as Array<dynamic>)
             loading.value = false
             null
@@ -42,330 +197,70 @@ fun Container.buildDancerTasks(appState: ObservableValue<Page>) {
 
     div(className = "container py-5 mt-5 pt-5") {
         backButton(appState, Page.DANCER_DASHBOARD)
-        h2("Dostępne zadania", className = "fw-bold mb-4")
+        h2(I18n.tr("Moje Nagrania i Oceny", "My Recordings and Grades"), className = "fw-bold mb-4")
 
         div {
             bind(loading) { isLoading ->
                 if (isLoading) {
-                    div(className = "text-center py-5") {
-                        tag(TAG.DIV, className = "spinner-border text-primary-dance") { setAttribute("role", "status") }
-                        p("Ładowanie zadań...", className = "text-muted mt-3")
-                    }
+                    div(className = "text-center py-5") { tag(TAG.DIV, className = "spinner-border text-primary-dance") { setAttribute("role", "status") } }
                 } else {
-                    div {
-                        bind(tasks) { taskList ->
-                            bind(subs) { subList ->
-                                if (taskList.isEmpty()) {
-                                    div(className = "card bg-dark border-secondary p-5 text-center") {
-                                        tag(TAG.I, className = "fa-solid fa-inbox fa-3x text-muted mb-3")
-                                        p("Brak dostępnych zadań. Trener jeszcze nic nie dodał.", className = "text-muted")
-                                    }
-                                } else {
-                                    // Mapujemy id zadań, które tancerz już wysłał
-                                    val submittedTaskIds = subList.mapNotNull { it.taskId?.toString()?.toIntOrNull() }
-                                    val pendingTasks = taskList.filter { (it.id?.toString()?.toIntOrNull() ?: -1) !in submittedTaskIds }
-                                    val completedTasks = taskList.filter { (it.id?.toString()?.toIntOrNull() ?: -1) in submittedTaskIds }
-
-                                    // --- 1. OCZEKUJĄCE NA ZROBIENIE ---
-                                    div(className = "mb-5") {
-                                        h4("⏳ Oczekujące na zrobienie", className = "fw-bold mb-3 border-bottom border-secondary pb-2")
-                                        if (pendingTasks.isEmpty()) {
-                                            p("Super! Nie masz żadnych zaległych zadań.", className = "text-muted")
-                                        } else {
-                                            ul(className = "list-group bg-dark shadow-sm col-md-10") {
-                                                pendingTasks.forEach { task ->
-                                                    val taskId = task.id?.toString()?.toIntOrNull() ?: 0
-                                                    val taskTitle = task.title?.toString() ?: "Zadanie #$taskId"
-                                                    val taskDesc = task.description?.toString() ?: ""
-                                                    val videoUrl = task.instructionVideoUrl?.toString()
-                                                    val deadline = task.deadline?.toString()?.substring(0, 10) ?: "—"
-
-                                                    li(className = "list-group-item bg-dark text-white border-secondary hover-card mb-2 p-3") {
-                                                        div(className = "d-flex justify-content-between align-items-center") {
-                                                            div {
-                                                                h5(taskTitle, className = "fw-bold text-primary-dance mb-1")
-                                                                small("Termin: $deadline", className = "text-muted")
-                                                            }
-                                                            tag(TAG.BUTTON, "Zobacz i wykonaj", className = "btn btn-sm dance-btn-primary") {
-                                                                onClick {
-                                                                    showDancerTaskDetailsFromBackend(taskId, taskTitle, taskDesc, videoUrl, myDancerId.toIntOrNull() ?: 1, appState)
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // --- 2. WYKONANE ---
-                                    div(className = "mb-4") {
-                                        h4("✅ Wykonane", className = "fw-bold mb-3 border-bottom border-secondary pb-2 text-success")
-                                        if (completedTasks.isEmpty()) {
-                                            p("Brak zrobionych zadań.", className = "text-muted")
-                                        } else {
-                                            ul(className = "list-group bg-dark shadow-sm col-md-10") {
-                                                completedTasks.forEach { task ->
-                                                    val taskId = task.id?.toString()?.toIntOrNull() ?: 0
-                                                    val taskTitle = task.title?.toString() ?: "Zadanie #$taskId"
-                                                    val deadline = task.deadline?.toString()?.substring(0, 10) ?: "—"
-
-                                                    li(className = "list-group-item bg-dark text-white border-secondary hover-card mb-2 p-3") {
-                                                        div(className = "d-flex justify-content-between align-items-center") {
-                                                            div {
-                                                                h5(taskTitle, className = "fw-bold text-success mb-1")
-                                                                small("Termin: $deadline", className = "text-muted")
-                                                            }
-                                                            tag(TAG.BUTTON, "Szczegóły", className = "btn btn-sm btn-outline-success") {
-                                                                onClick {
-                                                                    showCompletedTaskMessage(taskTitle, appState)
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                    bind(subs) { subList ->
+                        if (subList.isEmpty()) {
+                            div(className = "card bg-dark border-secondary p-5 text-center") {
+                                p(I18n.tr("Jeszcze nie masz żadnych nagrań.", "You have no recordings yet."), className = "text-muted")
+                                tag(TAG.BUTTON, I18n.tr("Znajdź zadanie", "Find a task"), className = "btn btn-outline-info mt-3") {
+                                    onClick { appState.value = Page.DANCER_TASKS }
                                 }
                             }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Funkcja pokazująca komunikat po kliknięciu w "Wykonane" zadanie
-fun showCompletedTaskMessage(taskTitle: String, appState: ObservableValue<Page>) {
-    val modal = Modal("Status zadania", closeButton = true, animation = true)
-    modal.div(className = "p-4 text-center") {
-        tag(TAG.I, className = "fa-solid fa-check-circle fa-3x text-success mb-3")
-        h5("Zadanie \"$taskTitle\" zostało już wysłane!", className = "fw-bold text-white mb-3")
-        p("Oczekuj na feedback od choreografa.", className = "text-light mb-4")
-        p("Możesz sprawdzić status swojego zadania i ewentualne oceny w zakładce \"Moje nagrania\".", className = "text-muted small")
-
-        tag(TAG.BUTTON, "Przejdź do 'Moje nagrania'", className = "btn dance-btn-primary w-100") {
-            onClick {
-                modal.hide()
-                appState.value = Page.DANCER_SUBMISSIONS
-            }
-        }
-    }
-    modal.show()
-}
-
-fun showDancerTaskDetailsFromBackend(taskId: Int, title: String, description: String, videoUrl: String?, dancerId: Int, appState: ObservableValue<Page>) {
-    val modal = Modal("Wyzwanie: $title", closeButton = true, animation = true)
-    modal.div(className = "p-3") {
-        h6("Instrukcje:", className = "text-primary-dance fw-bold mb-1")
-        p(description.ifBlank { "Brak opisu." }) { setStyle("color", "#000000"); addCssClass("mb-3") }
-
-        if (!videoUrl.isNullOrBlank()) {
-            h6("Wideo instruktażowe:", className = "text-primary-dance fw-bold mb-2")
-            val fullUrl = toVideoUrl(videoUrl)
-            tag(TAG.VIDEO, className = "w-100 rounded border border-secondary mb-3") {
-                setAttribute("controls", "controls"); setAttribute("style", "max-height:300px; background:#000;")
-                tag(TAG.SOURCE) { setAttribute("src", fullUrl); setAttribute("type", "video/mp4") }
-            }
-        } else {
-            p("Brak wideo wzorcowego.") { setStyle("color", "#6c757d"); addCssClass("fst-italic mb-3") }
-        }
-
-        div(className = "mt-4 border-top pt-3 border-secondary text-center") {
-            val fileInput = tag(TAG.INPUT) {
-                setAttribute("type", "file"); setAttribute("accept", "video/*"); setStyle("display", "none")
-            }
-            tag(TAG.BUTTON, "Wgraj swoje rozwiązanie \uD83C\uDFA5", className = "btn dance-btn-primary w-100 fw-bold") {
-                onClick { fileInput.getElement()?.asDynamic().click() }
-            }
-
-            fileInput.onEvent {
-                change = {
-                    val f = fileInput.getElement()?.asDynamic().files
-                    if (f != null && f.length > 0) {
-                        ApiService.uploadVideoForTask(f[0], taskId, dancerId).then<dynamic> { _: dynamic ->
-                            showToast("✔ Nagranie wysłane do trenera!")
-                            modal.hide()
-                            // Automatyczne przejście do "Moje nagrania" po wysłaniu
-                            appState.value = Page.DANCER_SUBMISSIONS
-                            null
-                        }.catch<dynamic> { _: Throwable -> window.alert("Błąd wgrywania nagrania. Sprawdź połączenie."); null }
-                    }
-                }
-            }
-        }
-    }
-    modal.show()
-}
-
-// ==========================================
-// MOJE NAGRANIA — podzielone na ocenione/nieocenione
-// ==========================================
-fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
-    val subs = io.kvision.state.ObservableListWrapper<dynamic>()
-    val tasks = io.kvision.state.ObservableListWrapper<dynamic>()
-    val loading = ObservableValue(true)
-    val errorText = ObservableValue("")
-
-    val dancerId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
-
-    ApiService.fetchTasks().then<dynamic> { resTasks: dynamic ->
-        val taskList = resTasks as Array<dynamic>
-        tasks.addAll(taskList)
-        val taskIds = taskList.mapNotNull { it.id?.toString()?.toIntOrNull() }
-
-        if (taskIds.isEmpty()) {
-            loading.value = false
-            return@then null
-        }
-
-        fun fetchNext(index: Int) {
-            if (index >= taskIds.size) {
-                loading.value = false; return
-            }
-            ApiService.fetchSubmissionsForTask(taskIds[index]).then<dynamic> { r: dynamic ->
-                val list = (r as Array<dynamic>).filter { it.dancerId?.toString() == dancerId.toString() }
-                subs.addAll(list)
-                fetchNext(index + 1)
-                null
-            }.catch<dynamic> { _: Throwable -> fetchNext(index + 1); null }
-        }
-        fetchNext(0)
-        null
-    }.catch<dynamic> { _: Throwable ->
-        errorText.value = "Nie udało się załadować nagrań."
-        loading.value = false
-        null
-    }
-
-    div(className = "container py-5 mt-5 pt-5") {
-        backButton(appState, Page.DANCER_DASHBOARD)
-        h2("Moje nagrania", className = "fw-bold mb-4")
-
-        div {
-            bind(loading) { isLoading ->
-                if (isLoading) {
-                    div(className = "text-center py-5") { tag(TAG.DIV, className = "spinner-border text-primary-dance") }
-                } else {
-                    if (errorText.value.isNotBlank()) {
-                        div(className = "alert alert-danger", content = errorText.value)
-                    }
-                    val currentList = subs.toList()
-                    if (currentList.isEmpty()) {
-                        div(className = "card bg-dark border-secondary p-5 text-center") {
-                            tag(TAG.I, className = "fa-solid fa-video-slash fa-3x text-muted mb-3")
-                            p("Nie wgrałeś jeszcze żadnych filmów.", className = "text-muted")
-                        }
-                    } else {
-                        val graded = currentList.filter { it.status?.toString() == "GRADED" }
-                        val pending = currentList.filter { it.status?.toString() != "GRADED" }
-
-                        // 1. OCENIONE ZADANIA
-                        if (graded.isNotEmpty()) {
-                            div(className = "mb-5") {
-                                div(className = "d-flex align-items-center mb-3") {
-                                    tag(TAG.I, className = "fa-solid fa-check-circle text-success me-2 fa-lg")
-                                    h4("Ocenione (${graded.size})", className = "fw-bold mb-0 text-success")
-                                }
-                                div(className = "row g-4") {
-                                    graded.forEach { s ->
+                        } else {
+                            val sortedSubs = subList.sortedByDescending { it.id?.toString()?.toIntOrNull() ?: 0 }
+                            table(className = "table table-dark table-hover align-middle") {
+                                thead { tr {
+                                    th("ID"); th(I18n.tr("Zadanie", "Task")); th(I18n.tr("Data", "Date")); th(I18n.tr("Status", "Status")); th(I18n.tr("Ocena", "Grade")); th(I18n.tr("Akcja", "Action"))
+                                } }
+                                tbody {
+                                    sortedSubs.forEach { s ->
                                         val subId = s.id?.toString()?.toIntOrNull() ?: 0
-                                        val tId = s.taskId?.toString()?.toIntOrNull() ?: 0
-                                        val taskObj = tasks.find { it.id?.toString()?.toIntOrNull() == tId }
-                                        val taskTitle = taskObj?.title?.toString() ?: "Zadanie #$tId"
-                                        val score = s.score?.toString() ?: "—"
+                                        val taskId = s.taskId?.toString()?.toIntOrNull() ?: 0
+                                        val taskObj = tasks.find { it.id?.toString()?.toIntOrNull() == taskId }
+                                        val taskTitle = taskObj?.title?.toString() ?: (I18n.tr("Zadanie #", "Task #") + "$taskId")
+                                        val statusStr = s.status?.toString() ?: "SUBMITTED"
+                                        val score = s.score?.toString()
 
-                                        div(className = "col-md-6") {
-                                            div(className = "card bg-dark border-success h-100 p-4 hover-card d-flex flex-column") {
-                                                h4(taskTitle, className = "fw-bold mb-3 text-white")
-                                                span("Ocena: $score/10", className = "badge bg-success fs-5 mb-4 align-self-start")
-
-                                                // Komentarze czasowe od choreografa
-                                                val commentsData = io.kvision.state.ObservableListWrapper<dynamic>()
-                                                val commLoading = ObservableValue(true)
-                                                ApiService.fetchComments(subId).then<dynamic> { cRes: dynamic ->
-                                                    commentsData.addAll(cRes as Array<dynamic>)
-                                                    commLoading.value = false
-                                                    null
-                                                }.catch<dynamic> { _: Throwable -> commLoading.value = false; null }
-
-                                                div(className = "mb-4 flex-grow-1") {
-                                                    h6("Komentarze trenera:", className = "text-primary-dance fw-bold small mb-2")
-                                                    div {
-                                                        bind(commLoading) { cLoading ->
-                                                            if (cLoading) {
-                                                                p("Ładowanie uwag...", className = "text-muted small")
-                                                            } else {
-                                                                val cList = commentsData.toList()
-                                                                if (cList.isEmpty()) {
-                                                                    p("Brak uwag czasowych.", className = "text-muted small")
-                                                                } else {
-                                                                    div(className = "bg-black rounded p-3 border border-secondary") {
-                                                                        cList.sortedBy { it.timestampSeconds?.toString()?.toIntOrNull() ?: 0 }.forEach { c ->
-                                                                            val sec = c.timestampSeconds?.toString()?.toIntOrNull() ?: 0
-                                                                            div(className = "d-flex mb-2 align-items-start") {
-                                                                                span(formatTime(sec), className = "badge bg-secondary me-2 mt-1")
-                                                                                span(c.content?.toString() ?: "", className = "small text-light")
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                tag(TAG.BUTTON, "Odtwórz wideo (Side-by-Side)", className = "btn dance-btn-primary w-100 mt-auto fw-bold") {
-                                                    onClick {
-                                                        PlayerState.submissionId = subId
-                                                        PlayerState.submissionVideoUrl = toVideoUrl(s.videoUrl?.toString())
-                                                        PlayerState.instructionVideoUrl = toVideoUrl(taskObj?.instructionVideoUrl?.toString())
-                                                        PlayerState.taskTitle = taskTitle
-                                                        PlayerState.isGraded = true
-                                                        PlayerState.currentScore = s.score?.toString()?.toIntOrNull()
-                                                        PlayerState.currentFeedback = s.feedback?.toString()
-                                                        appState.value = Page.PLAYER
-                                                    }
+                                        tr {
+                                            td("#$subId")
+                                            td(taskTitle)
+                                            td(s.sentAt?.toString()?.take(10) ?: I18n.tr("Brak", "None"))
+                                            td {
+                                                when (statusStr) {
+                                                    "GRADED" -> span(I18n.tr("Ocenione", "Graded"), className = "badge bg-success")
+                                                    "RESTORED" -> span(I18n.tr("Przywrócono choreografowi", "Restored to choreographer"), className = "badge bg-warning text-dark")
+                                                    else -> span(I18n.tr("Oczekuje", "Pending"), className = "badge bg-secondary")
                                                 }
                                             }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // 2. NIEOCENIONE ZADANIA
-                            if (pending.isNotEmpty()) {
-                                div(className = "mb-4") {
-                                    div(className = "d-flex align-items-center mb-3") {
-                                        tag(TAG.I, className = "fa-solid fa-clock text-warning me-2 fa-lg")
-                                        h4("Nieocenione (${pending.size})", className = "fw-bold mb-0 text-warning")
-                                    }
-                                    div(className = "row g-4") {
-                                        pending.forEach { s ->
-                                            val tId = s.taskId?.toString()?.toIntOrNull() ?: 0
-                                            val taskObj = tasks.find { it.id?.toString()?.toIntOrNull() == tId }
-
-                                            div(className = "col-md-6 col-lg-4") {
-                                                div(className = "card bg-dark border-warning h-100 p-4 hover-card") {
-                                                    // DODANO text-white W TYTULE
-                                                    h5(taskObj?.title?.toString() ?: "Zadanie #$tId", className = "fw-bold mb-3 text-white")
-
-                                                    span("oczekujące na feedback choreografa", className = "badge bg-warning text-dark fs-6 mb-4 text-wrap lh-base")
-
-                                                    tag(TAG.BUTTON, "Zobacz swoje wideo", className = "btn btn-outline-warning w-100 mt-auto fw-bold") {
+                                            td {
+                                                if (statusStr == "GRADED" && score != null) span("$score/10", className = "badge bg-info text-dark fs-6")
+                                                else span("—", className = "text-muted")
+                                            }
+                                            td {
+                                                if (statusStr == "GRADED") {
+                                                    tag(TAG.BUTTON, I18n.tr("Zobacz Feedback", "View Feedback"), className = "btn btn-sm dance-btn-primary") {
                                                         onClick {
-                                                            PlayerState.submissionId = s.id?.toString()?.toIntOrNull() ?: 0
+                                                            PlayerState.submissionId = subId
                                                             PlayerState.submissionVideoUrl = toVideoUrl(s.videoUrl?.toString())
                                                             PlayerState.instructionVideoUrl = toVideoUrl(taskObj?.instructionVideoUrl?.toString())
-                                                            PlayerState.taskTitle = taskObj?.title?.toString() ?: "Zadanie"
-                                                            PlayerState.isGraded = false
-                                                            PlayerState.currentScore = null
-                                                            PlayerState.currentFeedback = null
+                                                            PlayerState.taskTitle = taskTitle
+                                                            PlayerState.taskId = taskId
+                                                            PlayerState.isGraded = true
+                                                            PlayerState.currentScore = score?.toIntOrNull()
+                                                            PlayerState.currentFeedback = s.feedback?.toString()
                                                             appState.value = Page.PLAYER
                                                         }
                                                     }
+                                                } else if (statusStr == "RESTORED") {
+                                                    span(I18n.tr("Choreograf poprawia uwagi", "Choreographer is correcting notes"), className = "text-muted small fst-italic")
+                                                } else {
+                                                    span(I18n.tr("Czekaj na choreografa...", "Wait for choreographer..."), className = "text-muted small")
                                                 }
                                             }
                                         }
@@ -381,14 +276,14 @@ fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
 }
 
 // ==========================================
-// STATYSTYKI (PRZYWRÓCONY WYKRES CSS)
+// STATYSTYKI (TANCERZ)
 // ==========================================
 fun Container.buildDancerStats(appState: ObservableValue<Page>) {
+    val myId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
     val subs = io.kvision.state.ObservableListWrapper<dynamic>()
     val loading = ObservableValue(true)
-    val dancerId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
 
-    ApiService.fetchSubmissionsForDancer(dancerId).then<dynamic> { res: dynamic ->
+    ApiService.fetchSubmissionsForDancer(myId).then<dynamic> { res ->
         subs.addAll(res as Array<dynamic>)
         loading.value = false
         null
@@ -396,63 +291,57 @@ fun Container.buildDancerStats(appState: ObservableValue<Page>) {
 
     div(className = "container py-5 mt-5 pt-5") {
         backButton(appState, Page.DANCER_DASHBOARD)
-        h2("Twoje Statystyki", className = "fw-bold mb-4")
+        h2(I18n.tr("Twoje Statystyki", "Your Statistics"), className = "fw-bold mb-4 text-primary-dance")
+
         div {
             bind(loading) { isLoading ->
                 if (isLoading) {
-                    div(className = "text-center py-5") { tag(TAG.DIV, className = "spinner-border text-primary-dance") }
+                    div(className = "text-center py-5") { tag(TAG.DIV, className = "spinner-border text-info") }
                 } else {
-                    div {
-                        bind(subs) { list ->
-                            val total = list.size
-                            val graded = list.count { it.status?.toString() == "GRADED" }
-                            val scores = list.mapNotNull { it.score?.toString()?.toIntOrNull() }
-                            val avg = if (scores.isNotEmpty()) scores.average() else 0.0
-                            val pending = total - graded
+                    bind(subs) { subList ->
+                        val allCount = subList.size
+                        val gradedSubs = subList.filter { it.status?.toString() == "GRADED" }
+                        val gradedCount = gradedSubs.size
 
-                            div(className = "row g-4 mb-5") {
-                                div(className = "col-md-3") {
-                                    div(className = "card bg-dark border-secondary p-4 text-center shadow-sm hover-card h-100") {
-                                        tag(TAG.I, className = "fa-solid fa-video fa-2x text-primary-dance mb-3")
-                                        h2(total.toString(), className = "fw-bold text-white mb-2")
-                                        p("Wgranych filmów", className = "text-light small fw-bold mb-0 text-uppercase")
-                                    }
-                                }
-                                div(className = "col-md-3") {
-                                    div(className = "card bg-dark border-secondary p-4 text-center shadow-sm hover-card h-100") {
-                                        tag(TAG.I, className = "fa-solid fa-check-circle fa-2x text-success mb-3")
-                                        h2(graded.toString(), className = "fw-bold text-white mb-2")
-                                        p("Ocenionych", className = "text-light small fw-bold mb-0 text-uppercase")
-                                    }
-                                }
-                                div(className = "col-md-3") {
-                                    div(className = "card bg-dark border-secondary p-4 text-center shadow-sm hover-card h-100") {
-                                        tag(TAG.I, className = "fa-solid fa-clock fa-2x text-warning mb-3")
-                                        h2(pending.toString(), className = "fw-bold text-white mb-2")
-                                        p("Oczekujących", className = "text-light small fw-bold mb-0 text-uppercase")
-                                    }
-                                }
-                                div(className = "col-md-3") {
-                                    div(className = "card bg-dark border-secondary p-4 text-center shadow-sm hover-card h-100") {
-                                        tag(TAG.I, className = "fa-solid fa-star fa-2x text-primary-dance mb-3")
-                                        h2(if (avg > 0) (kotlin.math.round(avg * 10) / 10.0).toString() else "—", className = "fw-bold text-white mb-2")
-                                        p("Średnia ocena", className = "text-light small fw-bold mb-0 text-uppercase")
-                                    }
+                        val scores = gradedSubs.mapNotNull { it.score?.toString()?.toIntOrNull() }
+                        val avgScore = if (scores.isNotEmpty()) scores.average() else 0.0
+                        val avgStr = avgScore.asDynamic().toFixed(1).toString()
+
+                        div(className = "row g-4") {
+                            div(className = "col-md-4") {
+                                div(className = "card bg-dark border-secondary p-4 text-center h-100") {
+                                    tag(TAG.I, className = "fa-solid fa-video fa-2x text-light mb-2")
+                                    h3(allCount.toString(), className = "fw-bold text-white")
+                                    p(I18n.tr("Przesłane nagrania", "Submitted recordings"), className = "text-muted small mb-0 text-uppercase")
                                 }
                             }
+                            div(className = "col-md-4") {
+                                div(className = "card bg-dark border-secondary p-4 text-center h-100") {
+                                    tag(TAG.I, className = "fa-solid fa-check-double fa-2x text-success mb-2")
+                                    h3(gradedCount.toString(), className = "fw-bold text-white")
+                                    p(I18n.tr("Ocenione zadania", "Graded tasks"), className = "text-muted small mb-0 text-uppercase")
+                                }
+                            }
+                            div(className = "col-md-4") {
+                                div(className = "card bg-dark border-secondary p-4 text-center h-100") {
+                                    tag(TAG.I, className = "fa-solid fa-star fa-2x text-warning mb-2")
+                                    h3(avgStr, className = "fw-bold text-white")
+                                    p(I18n.tr("Średnia ocena", "Average grade"), className = "text-muted small mb-0 text-uppercase")
+                                }
+                            }
+                        }
 
-                            // WYKRES SŁUPKOWY CSS
-                            if (total > 0) {
-                                div(className = "row") {
-                                    div(className = "col-md-8") {
-                                        div(className = "card bg-dark border-secondary p-4") {
-                                            h4("Ostatnie Oceny (Wykres Postępów)", className = "fw-bold text-white mb-4")
-
-                                            if (scores.isEmpty()) {
-                                                p("Musisz otrzymać przynajmniej jedną ocenę, aby zobaczyć wykres.", className = "text-muted")
-                                            } else {
-                                                div(className = "d-flex align-items-end justify-content-around mt-2") {
-                                                    setAttribute("style", "height: 150px; border-bottom: 2px solid #555; padding-bottom: 5px;")
+                        div(className = "row mt-4") {
+                            div(className = "col-12") {
+                                div(className = "card bg-dark border-secondary p-4") {
+                                    h4(I18n.tr("Wizualizacja Ocen", "Grades Visualization"), className = "mb-4 text-white")
+                                    if (scores.isEmpty()) {
+                                        p(I18n.tr("Brak ocen do wygenerowania wykresu.", "No grades to generate a chart."), className = "text-muted text-center py-4")
+                                    } else {
+                                        div(className = "d-flex justify-content-center align-items-end mx-auto") {
+                                            setAttribute("style", "height: 150px; border-bottom: 1px solid #444; max-width: 600px; gap: 10px;")
+                                            div(className = "d-flex h-100 align-items-end") {
+                                                if (scores.isNotEmpty()) {
                                                     val recentScores = scores.takeLast(7) // Pokazuje max 7 ostatnich ocen
 
                                                     recentScores.forEach { score ->
@@ -465,7 +354,7 @@ fun Container.buildDancerStats(appState: ObservableValue<Page>) {
                                                         }
                                                     }
                                                 }
-                                                p("Chronologia od lewej do prawej", className = "text-center text-muted small mt-3 mb-0")
+                                                p(I18n.tr("Chronologia od lewej do prawej", "Chronology from left to right"), className = "text-center text-muted small mt-3 mb-0")
                                             }
                                         }
                                     }
