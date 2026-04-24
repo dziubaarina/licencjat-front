@@ -27,7 +27,7 @@ import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.HTMLVideoElement
 import org.w3c.dom.url.URL
 
-// --- MODEL ZADANIA ---
+// --- MODELE ---
 data class ChoreoTask(
     val id: Int,
     val title: String,
@@ -39,7 +39,7 @@ data class ChoreoTask(
 object DataManager {
     val globalTasks = io.kvision.state.ObservableListWrapper<ChoreoTask>()
     val globalAnnouncements = io.kvision.state.ObservableListWrapper<dynamic>()
-    val allUsers = io.kvision.state.ObservableListWrapper<dynamic>() // Dodane do pobierania kontaktów czatu
+    val allUsers = io.kvision.state.ObservableListWrapper<dynamic>()
     val allDancers = listOf(
         "1" to "tancerz@danceapp.pl",
         "2" to "Anna Kowalska",
@@ -58,7 +58,6 @@ object PlayerState {
     var currentFeedback: String? = null
 }
 
-// --- STAN DLA ADMINA ---
 object AdminState {
     var selectedUserId: Int = 0
     var selectedUserName: String = ""
@@ -142,12 +141,14 @@ class App : Application() {
                             contentContainer.apply {
                                 when (page) {
                                     Page.HOME -> buildHomeView()
-                                    Page.DANCER_DASHBOARD -> buildDancerDashboard(appState) // Będzie działać z Twoim DancerView.kt
-                                    Page.CHOREO_DASHBOARD -> buildChoreoDashboard()
-                                    Page.ADMIN_PANEL -> buildAdminPanel()
+                                    // Funkcje tancerza poniżej ładowane są z DancerView.kt
+                                    Page.DANCER_DASHBOARD -> buildDancerDashboard(appState)
                                     Page.DANCER_TASKS -> buildDancerTasks(appState)
                                     Page.DANCER_SUBMISSIONS -> buildDancerSubmissions(appState)
                                     Page.DANCER_STATS -> buildDancerStats(appState)
+
+                                    Page.CHOREO_DASHBOARD -> buildChoreoDashboard()
+                                    Page.ADMIN_PANEL -> buildAdminPanel()
                                     Page.CHOREO_QUEUE -> buildChoreoQueue()
                                     Page.CHOREO_TASKS -> buildChoreoTasks()
                                     Page.CHOREO_ARCHIVE -> buildChoreoArchive()
@@ -268,7 +269,6 @@ class App : Application() {
                     h2(I18n.tr("Dlaczego nasza platforma?", "Why our platform?"), className = "fw-bold text-dark")
                     p(I18n.tr("Zaprojektowana z myślą o rozwoju i komunikacji.", "Designed for growth and communication."), className = "text-muted")
                 }
-                // WYŚRODKOWANIE KAFELKÓW NA DOLE
                 div(className = "row g-4 text-center justify-content-center") {
                     featureCard("fa-users", I18n.tr("Dla Tancerzy", "For Dancers"), I18n.tr("Otrzymuj konkretny feedback do swoich ruchów. Wgrywaj nagrania i śledź swój progres w dedykowanym panelu.", "Get specific feedback on your moves. Upload recordings and track progress."))
                     featureCard("fa-video", I18n.tr("Dla Choreografów", "For Choreographers"), I18n.tr("Zarządzaj zadaniami. Innowacyjny odtwarzacz wideo z notatkami czasowymi ułatwi Ci szybką ocenę techniki.", "Manage tasks. Innovative video player with timestamped notes."))
@@ -288,7 +288,6 @@ class App : Application() {
         div(className = "bg-dark py-5 border-top border-secondary") {
             div(className = "container") {
                 h2(I18n.tr("Aktualności i Ogłoszenia", "News & Announcements"), className = "text-center fw-bold text-white mb-4")
-                // WYŚRODKOWANIE KAFELKÓW NA DOLE
                 div(className = "row g-3 justify-content-center") {
                     bind(DataManager.globalAnnouncements) { list ->
                         if (list.isEmpty()) p(I18n.tr("Brak nowych ogłoszeń.", "No new announcements."), className = "text-center text-muted w-100")
@@ -318,7 +317,12 @@ class App : Application() {
                                         div(className = "p-3 d-flex flex-column h-100") {
                                             span(ann.type?.toString() ?: "Info", className = "badge bg-secondary mb-2 align-self-start")
                                             h5(ann.title?.toString() ?: "", className = "fw-bold text-white")
-                                            p(ann.content?.toString() ?: "", className = "text-muted small mb-3")
+
+                                            // POPRAWKA: Dodano zachowanie enterów poprzez styl white-space: pre-wrap
+                                            p(ann.content?.toString() ?: "", className = "text-muted small mb-3") {
+                                                setStyle("white-space", "pre-wrap")
+                                            }
+
                                             div(className = "mt-auto text-end small text-muted fw-bold") {
                                                 span(ann.date?.toString()?.take(10) ?: "")
                                             }
@@ -365,71 +369,39 @@ class App : Application() {
                     onClick {
                         if (passwordInput?.type == io.kvision.html.InputType.PASSWORD) {
                             passwordInput?.type = io.kvision.html.InputType.TEXT
-                            iconTag.removeCssClass("fa-eye-slash")
-                            iconTag.addCssClass("fa-eye")
+                            iconTag.removeCssClass("fa-eye-slash"); iconTag.addCssClass("fa-eye")
                         } else {
                             passwordInput?.type = io.kvision.html.InputType.PASSWORD
-                            iconTag.removeCssClass("fa-eye")
-                            iconTag.addCssClass("fa-eye-slash")
+                            iconTag.removeCssClass("fa-eye"); iconTag.addCssClass("fa-eye-slash")
                         }
                     }
                 }
             }
 
             val errorText = span("", className = "small fw-bold")
-            val errorAlert = div(className = "alert alert-danger py-2 mb-3 text-center rounded-3") {
-                visible = false
-                add(errorText)
-            }
+            val errorAlert = div(className = "alert alert-danger py-2 mb-3 text-center rounded-3") { visible = false; add(errorText) }
 
             tag(TAG.BUTTON, I18n.tr("Zaloguj się", "Log in"), className = "btn dance-btn-primary btn-lg w-100 rounded-pill fw-bold") {
                 onClick {
-                    val email = emailInput.value ?: ""
-                    val pass = passwordInput?.value ?: ""
-
-                    if (email.isBlank() || pass.isBlank()) {
-                        errorText.content = I18n.tr("Podaj e-mail i hasło.", "Provide email and password.")
-                        errorAlert.visible = true
-                        return@onClick
-                    }
-
+                    val email = emailInput.value ?: ""; val pass = passwordInput?.value ?: ""
+                    if (email.isBlank() || pass.isBlank()) { errorText.content = "Podaj e-mail i hasło."; errorAlert.visible = true; return@onClick }
                     errorAlert.visible = false
-
                     ApiService.login(email, pass).then<dynamic> { res: dynamic ->
-                        val token = res.token?.toString()
-                        val role = res.role?.toString()
-                        if (token != null && role != null && token.isNotBlank()) {
-                            window.localStorage.setItem("jwt", token)
-                            window.localStorage.setItem("userRole", role)
+                        val token = res.token?.toString(); val role = res.role?.toString()
+                        if (token != null && role != null) {
+                            window.localStorage.setItem("jwt", token); window.localStorage.setItem("userRole", role)
                             ApiService.fetchUsersWithToken(token).then<dynamic> { users: dynamic ->
                                 val list = users as Array<dynamic>
                                 val found = list.find { it.email?.toString() == email }
                                 val userId = found?.id?.toString()?.toIntOrNull()
-                                if (userId != null) {
-                                    window.localStorage.setItem("userId", userId.toString())
-                                    currentUserId.value = userId
-                                }
+                                if (userId != null) { window.localStorage.setItem("userId", userId.toString()); currentUserId.value = userId }
                                 null
-                            }.catch<dynamic> { _: Throwable -> null }
-                            userRole.value = role
-                            appState.value = when (role) {
-                                "DANCER" -> Page.DANCER_DASHBOARD
-                                "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
-                                "ADMIN" -> Page.ADMIN_PANEL
-                                else -> Page.HOME
                             }
+                            userRole.value = role; appState.value = when (role) { "DANCER" -> Page.DANCER_DASHBOARD; "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD; "ADMIN" -> Page.ADMIN_PANEL; else -> Page.HOME }
                             modal.hide()
-                        } else {
-                            errorText.content = I18n.tr("Błędne dane logowania.", "Invalid login credentials.")
-                            errorAlert.visible = true
                         }
                         null
-                    }.catch<dynamic> { err: Throwable ->
-                        console.log("BŁĄD LOGOWANIA:", err)
-                        errorText.content = I18n.tr("Błędne dane lub brak połączenia.", "Invalid credentials or no connection.")
-                        errorAlert.visible = true
-                        null
-                    }
+                    }.catch<dynamic> { errorAlert.visible = true; null }
                 }
             }
         }
@@ -445,58 +417,27 @@ class App : Application() {
         }
 
         modal.vPanel(className = "p-4") {
-            h3(I18n.tr("Utwórz konto w DANCE APP", "Create an account in DANCE APP"), className = "text-center fw-bold text-primary-dance mb-4")
+            h3(I18n.tr("Utwórz konto w DANCE APP", "Create an account"), className = "text-center fw-bold text-primary-dance mb-4")
 
             label(I18n.tr("Imię", "First Name"), className = "form-label fw-bold mb-1")
-            val firstNameInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control login-input rounded-3 mb-3") {
-                placeholder = I18n.tr("wpisz swoje imię", "enter your first name")
-            }
+            val firstNameInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "Wpisz imię" }
 
             label(I18n.tr("Nazwisko", "Last Name"), className = "form-label fw-bold mb-1")
-            val lastNameInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control login-input rounded-3 mb-3") {
-                placeholder = I18n.tr("wpisz swoje nazwisko", "enter your last name")
-            }
+            val lastNameInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "Wpisz nazwisko" }
 
-            label(I18n.tr("E-mail", "Email address"), className = "form-label fw-bold mb-1")
-            val emailInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control login-input rounded-3 mb-3") {
-                placeholder = "twoj@email.com"
-            }
+            label(I18n.tr("E-mail", "Email"), className = "form-label fw-bold mb-1")
+            val emailInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "twoj@email.com" }
 
             label(I18n.tr("Hasło", "Password"), className = "form-label fw-bold mb-1")
-            val passInput = textInput(type = io.kvision.html.InputType.PASSWORD, className = "form-control login-input rounded-3 mb-4") {
-                placeholder = I18n.tr("utwórz hasło", "create a password")
-            }
+            val passInput = textInput(type = io.kvision.html.InputType.PASSWORD, className = "form-control login-input rounded-3 mb-4") { placeholder = "Wpisz hasło" }
 
             val errorMsg = span("", className = "text-danger small d-block mb-2 text-center") { visible = false }
-            val successMsg = span("", className = "text-success small d-block mb-2 text-center") { visible = false }
 
             tag(TAG.BUTTON, I18n.tr("Dołącz!", "Join!"), className = "btn dance-btn-primary btn-lg w-100 rounded-pill fw-bold") {
                 onClick {
-                    val firstName = firstNameInput.value ?: ""
-                    val lastName = lastNameInput.value ?: ""
-                    val email = emailInput.value ?: ""
-                    val pass = passInput.value ?: ""
-
-                    if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || pass.isBlank()) {
-                        errorMsg.content = I18n.tr("Proszę wypełnić wszystkie pola.", "Please fill in all fields.")
-                        errorMsg.visible = true
-                        successMsg.visible = false
-                        return@onClick
-                    }
-
-                    errorMsg.visible = false
-                    ApiService.registerUser(firstName, lastName, email, pass).then<dynamic> { _: dynamic ->
-                        successMsg.content = I18n.tr("Konto utworzone pomyślnie! Możesz się teraz zalogować.", "Account created successfully! You can now log in.")
-                        successMsg.visible = true
-                        errorMsg.visible = false
-                        window.setTimeout({ modal.hide() }, 2500)
-                        null
-                    }.catch<dynamic> { _: Throwable ->
-                        errorMsg.content = I18n.tr("Wystąpił błąd podczas rejestracji. Ten e-mail może być już zajęty.", "Error during registration. Email might be taken.")
-                        errorMsg.visible = true
-                        successMsg.visible = false
-                        null
-                    }
+                    val fn = firstNameInput.value ?: ""; val ln = lastNameInput.value ?: ""; val em = emailInput.value ?: ""; val ps = passInput.value ?: ""
+                    if (fn.isBlank() || ln.isBlank() || em.isBlank() || ps.isBlank()) { errorMsg.visible = true; return@onClick }
+                    ApiService.registerUser(fn, ln, em, ps).then<dynamic> { modal.hide(); null }.catch<dynamic> { errorMsg.visible = true; null }
                 }
             }
         }
@@ -509,7 +450,6 @@ class App : Application() {
     private fun Container.buildChoreoDashboard() {
         div(className = "container py-5 mt-5") {
             h2(I18n.tr("Panel Mentorski (Choreograf)", "Mentoring Panel (Choreographer)"), className = "fw-bold text-primary-dance mb-4 pt-4")
-            // WYŚRODKOWANIE KAFELKÓW NA DOLE
             div(className = "row g-4 justify-content-center") {
                 dashboardCard("fa-clock", I18n.tr("Kolejka do oceny", "Grading Queue"), I18n.tr("Filmy oczekujące na feedback.", "Videos waiting for feedback.")) { appState.value = Page.CHOREO_QUEUE }
                 dashboardCard("fa-plus-circle", I18n.tr("Zarządzanie zadaniami", "Manage Tasks"), I18n.tr("Dodawaj wyzwania dla tancerzy.", "Add challenges for dancers.")) { appState.value = Page.CHOREO_TASKS }
@@ -543,8 +483,7 @@ class App : Application() {
         }.catch<dynamic> { _: Throwable -> loading.value = false; null }
 
         div(className = "container py-5 mt-5 pt-5") {
-            // Założenie: Posiadasz metodę backButton zdefiniowaną w SharedComponents.kt
-            backButton(appState, Page.CHOREO_DASHBOARD)
+            backButton(appState, Page.DANCER_DASHBOARD)
             h2(I18n.tr("Kolejka do oceny", "Grading Queue"), className = "fw-bold mb-4")
             div {
                 bind(loading) { isLoading ->
@@ -635,11 +574,11 @@ class App : Application() {
                 div(className = "col-md-7") {
                     h2(I18n.tr("Kreator zadań", "Task Creator"), className = "fw-bold mb-4")
                     div(className = "card bg-dark border-secondary p-4") {
-                        val taskTitleInput = text(label = I18n.tr("Tytuł zadania", "Task Title")) { addCssClass("bg-dark"); addCssClass("text-white") }
-                        val taskDescInput = textArea(label = I18n.tr("Opis wymagań", "Requirements description")) { addCssClass("bg-dark"); addCssClass("text-white") }
+                        val taskTitleInput = textInput(className = "form-control mb-3") { placeholder = I18n.tr("Tytuł zadania...", "Task Title...") }
+                        val taskDescInput = textArea { addCssClass("form-control"); setAttribute("rows", "3"); placeholder = I18n.tr("Opis wymagań...", "Requirements description...") }
 
                         label(I18n.tr("Termin wykonania:", "Deadline:"), className = "form-label text-light fw-bold mt-3")
-                        val deadlineInput = tag(TAG.INPUT, className = "form-control bg-dark text-white border-secondary mb-3") {
+                        val deadlineInput = tag(TAG.INPUT, className = "form-control mb-3") {
                             setAttribute("type", "datetime-local")
                             val now = js("new Date()")
                             now.setMonth(now.getMonth() + 3)
@@ -689,7 +628,7 @@ class App : Application() {
 
                         div(className = "mt-4") {
                             label(I18n.tr("Wideo wzorcowe (wymagane)", "Reference video (required)"), className = "form-label text-light fw-bold")
-                            val fileInput = tag(TAG.INPUT, className = "form-control bg-dark text-white border-secondary mb-3") {
+                            val fileInput = tag(TAG.INPUT, className = "form-control mb-3") {
                                 setAttribute("type", "file"); setAttribute("accept", "video/*")
                             }
                             tag(TAG.BUTTON, I18n.tr("Opublikuj zadanie", "Publish task"), className = "btn dance-btn-primary w-100 mt-3") {
@@ -928,7 +867,6 @@ class App : Application() {
     private fun Container.buildAdminPanel() {
         div(className = "container py-5 mt-5") {
             h2(I18n.tr("Panel Admina", "Admin Panel"), className = "fw-bold text-primary-dance mb-4 pt-4")
-            // WYŚRODKOWANIE KAFELKÓW NA DOLE
             div(className = "row g-4 justify-content-center") {
                 dashboardCard("fa-users-cog", I18n.tr("Zarządzanie Użytkownikami", "User Management"), I18n.tr("Awansowanie, blokowanie i usuwanie kont.", "Promoting, blocking and deleting accounts.")) { appState.value = Page.ADMIN_USERS }
                 dashboardCard("fa-shield", I18n.tr("Globalna Moderacja", "Global Moderation"), I18n.tr("Wgląd w postępy tancerzy i edycja komentarzy.", "Insight into dancers' progress and comment editing.")) { appState.value = Page.ADMIN_MODERATION }
@@ -1141,16 +1079,19 @@ class App : Application() {
             label(I18n.tr("Tytuł", "Title"), className = "form-label fw-bold mb-1")
             val titleInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control mb-3") {
                 value = currentTitle
+                placeholder = I18n.tr("Wpisz tytuł...", "Enter title...")
             }
 
             label(I18n.tr("Opis", "Description"), className = "form-label fw-bold mb-1")
             val descInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control mb-3") {
                 value = currentDesc
+                placeholder = I18n.tr("Wpisz opis...", "Enter description...")
             }
 
             label(I18n.tr("Termin (np. 01.01.2027 12:00)", "Deadline (e.g. 01.01.2027 12:00)"), className = "form-label fw-bold mb-1")
             val deadlineInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control mb-4") {
                 value = currentDeadline.take(16).replace("T", " ")
+                placeholder = "01.01.2027 12:00"
             }
 
             tag(TAG.BUTTON, I18n.tr("Zapisz Zmiany", "Save Changes"), className = "btn dance-btn-primary w-100") {
@@ -1435,6 +1376,7 @@ class App : Application() {
                                         if (editing) {
                                             val editInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control mb-2") {
                                                 value = originalContent
+                                                placeholder = I18n.tr("Treść komentarza...", "Comment content...")
                                             }
                                             div(className = "d-flex gap-2") {
                                                 tag(TAG.BUTTON, I18n.tr("Zapisz", "Save"), className = "btn btn-sm btn-success") {
@@ -1501,7 +1443,6 @@ class App : Application() {
         loadAnnouncements()
 
         div(className = "container py-5 mt-5 pt-5") {
-            // Założenie: Posiadasz metodę backButton zdefiniowaną w SharedComponents.kt
             backButton(appState, Page.ADMIN_PANEL)
             h2(I18n.tr("Zarządzanie Ogłoszeniami", "Announcements Management"), className = "fw-bold mb-4")
 
@@ -1511,17 +1452,23 @@ class App : Application() {
                         h4(I18n.tr("Nowe ogłoszenie", "New announcement"), className = "text-primary-dance mb-3")
 
                         label(I18n.tr("Tytuł", "Title"), className = "fw-bold mb-1")
-                        val tInput = textInput(className = "form-control mb-3")
+                        val tInput = textInput(className = "form-control mb-3") {
+                            placeholder = I18n.tr("Wpisz tytuł...", "Enter title...")
+                        }
 
                         label(I18n.tr("Treść", "Content"), className = "fw-bold mb-1")
                         val cInput = textArea {
                             addCssClass("form-control")
                             addCssClass("mb-3")
                             setAttribute("rows", "4")
+                            setAttribute("placeholder", I18n.tr("Wpisz treść ogłoszenia...", "Enter announcement content..."))
                         }
 
                         label(I18n.tr("Typ (np. Konkurs, Praca, Wydarzenie)", "Type (e.g. Contest, Job, Event)"), className = "fw-bold mb-1")
-                        val typInput = textInput(className = "form-control mb-3") { value = "Info" }
+                        val typInput = textInput(className = "form-control mb-3") {
+                            value = "Info"
+                            placeholder = I18n.tr("Wpisz typ...", "Enter type...")
+                        }
 
                         label(I18n.tr("Zdjęcie / Film (Opcjonalnie):", "Photo / Video (Optional):"), className = "fw-bold small mb-1")
                         val fileInput = tag(TAG.INPUT, className = "form-control mb-4") {
@@ -1556,7 +1503,7 @@ class App : Application() {
                 div(className = "col-md-7") {
                     h4(I18n.tr("Aktywne ogłoszenia", "Active announcements"), className = "mb-3")
                     bind(DataManager.globalAnnouncements) { list ->
-                        if (list.isEmpty()) p(I18n.tr("Brak ogłoszeń.", "No announcements."), className = "text-muted")
+                        if (list.isEmpty()) p(I18n.tr("Brak ogłoszeń.", "No announcements."), className = "text-center text-muted w-100")
                         else {
                             ul(className = "list-group") {
                                 list.forEach { ann ->
@@ -1599,14 +1546,21 @@ class App : Application() {
     private fun showEditAnnouncementModal(ann: dynamic, onSuccess: () -> Unit) {
         val modal = Modal(I18n.tr("Edytuj Ogłoszenie", "Edit Announcement"), closeButton = true, animation = true)
         modal.div(className = "p-3") {
-            val tInput = textInput(className = "form-control mb-3") { value = ann.title?.toString() }
+            val tInput = textInput(className = "form-control mb-3") {
+                value = ann.title?.toString()
+                placeholder = I18n.tr("Wpisz tytuł...", "Enter title...")
+            }
             val cInput = textArea {
                 addCssClass("form-control")
                 addCssClass("mb-3")
                 setAttribute("rows", "4")
+                setAttribute("placeholder", I18n.tr("Wpisz treść ogłoszenia...", "Enter announcement content..."))
                 value = ann.content?.toString()
             }
-            val typInput = textInput(className = "form-control mb-4") { value = ann.type?.toString() ?: "Info" }
+            val typInput = textInput(className = "form-control mb-4") {
+                value = ann.type?.toString() ?: "Info"
+                placeholder = I18n.tr("Wpisz typ...", "Enter type...")
+            }
 
             tag(TAG.BUTTON, I18n.tr("Zapisz", "Save"), className = "btn dance-btn-primary w-100") {
                 onClick {
@@ -1657,7 +1611,6 @@ class App : Application() {
         }
 
         div(className = "container py-5 mt-5 pt-5") {
-            // Założenie: Posiadasz metodę backButton zdefiniowaną w SharedComponents.kt
             backButton(appState, backPage)
 
             h2(I18n.tr("Messenger Społeczności", "Community Messenger"), className = "fw-bold text-primary-dance mb-4")
@@ -1794,7 +1747,6 @@ class App : Application() {
         }
 
         div(className = "container-fluid py-5 mt-5 pt-4 px-4") {
-            // Założenie: Posiadasz metodę backButton zdefiniowaną w SharedComponents.kt
             backButton(appState, backPage)
 
             h2(PlayerState.taskTitle.ifBlank { I18n.tr("Analiza Video", "Video Analysis") }, className = "fw-bold mb-3")
@@ -1885,11 +1837,11 @@ class App : Application() {
                         div(className = "card bg-dark border-primary-dance p-3") {
                             h5(I18n.tr("Oceń nagranie", "Grade recording"), className = "fw-bold mb-3 text-primary-dance")
                             label(I18n.tr("Ocena (1-10):", "Grade (1-10):"), className = "form-label text-light small")
-                            val scoreInput = tag(TAG.INPUT, className = "form-control bg-dark text-white border-secondary mb-2") {
+                            val scoreInput = tag(TAG.INPUT, className = "form-control mb-2") {
                                 setAttribute("type", "number"); setAttribute("min", "1"); setAttribute("max", "10"); setAttribute("placeholder", "np. 8")
                             }
                             label(I18n.tr("Feedback:", "Feedback:"), className = "form-label text-light small")
-                            val feedbackInput = tag(TAG.TEXTAREA, className = "form-control bg-dark text-white border-secondary mb-3") {
+                            val feedbackInput = tag(TAG.TEXTAREA, className = "form-control mb-3") {
                                 setAttribute("rows", "3"); setAttribute("placeholder", "Napisz swoje uwagi...")
                             }
                             div { bind(gradeSuccess) { ok -> if (ok) div(className = "alert alert-success py-2 mb-2") { span(I18n.tr("✔ Ocena zapisana!", "✔ Grade saved!")) } } }
@@ -1924,7 +1876,7 @@ class App : Application() {
                             div(className = "mb-3 p-3 rounded border border-secondary bg-dark") {
                                 label(I18n.tr("Napisz komentarz (sekunda zapisze się automatycznie):", "Write a comment (second saves automatically):"), className = "form-label text-white fw-bold mb-2")
 
-                                val commentInput = tag(TAG.TEXTAREA, className = "form-control bg-dark text-white border-secondary mb-3") {
+                                val commentInput = tag(TAG.TEXTAREA, className = "form-control mb-3") {
                                     setAttribute("id", "comment-input")
                                     setAttribute("placeholder", I18n.tr("np. wyprostuj nogę, trzymaj tempo...", "e.g. straighten your leg, keep the tempo..."))
                                     setAttribute("rows", "2")
