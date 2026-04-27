@@ -185,7 +185,46 @@ class App : Application() {
     private fun Container.buildNavbar() {
         nav(className = "navbar navbar-expand-lg navbar-dark bg-dark fixed-top py-2 border-bottom border-secondary") {
             div(className = "container-fluid px-4") {
-                link(I18n.tr("DANCE APP", "DANCE APP"), "javascript:void(0)", className = "navbar-brand fs-4 fw-bold tracking-wide text-primary-dance") {
+                link("", "javascript:void(0)", className = "navbar-brand d-flex align-items-center pe-auto") {
+                    tag(TAG.SPAN) {
+                        rich = true
+                        content = """
+            <svg height="45" viewBox="0 0 380 120" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+                
+                <g transform="translate(-10, -20) scale(0.38)">
+                    <path d="M 958 73 L 943 78 L 934 87 L 930 97 L 930 107 L 934 116 L 948 124 L 962 118 
+                             L 965 112 L 964 101 L 960 102 L 959 114 L 953 119 L 946 119 L 937 112 L 934 100 
+                             L 944 83 L 954 78 L 966 78 L 975 82 L 985 93 L 989 106 L 987 117 L 978 131 
+                             L 962 144 L 948 151 L 924 157 L 905 157 L 881 151 L 861 140 L 806 97 L 781 86 
+                             L 760 84 L 735 94 L 655 160 L 642 166 L 635 166 L 629 159 L 627 149 L 638 118 
+                             L 632 98 L 624 91 L 611 86 L 593 87 L 576 96 L 556 120 L 553 130 L 555 156 
+                             L 567 183 L 615 257 L 627 293 L 624 318 L 617 331 L 604 344 L 585 353 L 558 355 
+                             L 538 350 L 521 341 L 506 326 L 501 315 L 503 296 L 534 261 L 532 251 L 522 244 
+                             L 509 245 L 500 250 L 464 285 L 431 308 L 407 319 L 376 327 L 347 328 L 315 323 
+                             L 223 293 L 180 285 L 151 285 L 124 290 L 100 299 L 72 317 L 74 321 L 91 309 
+                             L 123 295 L 147 290 L 173 289 L 224 298 L 317 328 L 341 332 L 379 331 L 412 322 
+                             L 435 311 L 469 287 L 500 256 L 519 248 L 528 254 L 529 261 L 502 288 L 496 305 
+                             L 497 317 L 503 330 L 517 344 L 533 353 L 554 359 L 578 359 L 605 349 L 624 329 
+                             L 631 308 L 631 289 L 623 263 L 570 179 L 558 150 L 559 125 L 568 110 L 580 99 
+                             L 592 92 L 608 90 L 620 94 L 629 102 L 633 110 L 633 121 L 624 140 L 623 153 
+                             L 627 165 L 636 171 L 650 168 L 665 159 L 731 103 L 757 89 L 774 89 L 802 100 
+                             L 857 143 L 874 153 L 901 161 L 928 161 L 963 149 L 980 136 L 991 119 L 993 102 
+                             L 986 86 L 971 75 Z"
+                          fill="none"
+                          stroke="var(--color-text)"
+                          stroke-width="8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"/>
+                </g>
+
+                <text x="20" y="72" font-family="'Montserrat', 'Inter', sans-serif" font-size="46" font-weight="400" fill="var(--color-text)" letter-spacing="1">Dance</text>
+                <text x="155" y="72" font-family="'Montserrat', 'Inter', sans-serif" font-size="46" font-weight="400" fill="var(--color-primary)" letter-spacing="1">In</text>
+                <text x="235" y="72" font-family="'Montserrat', 'Inter', sans-serif" font-size="46" font-weight="400" fill="var(--color-primary)" letter-spacing="1">ense</text>
+
+            </svg>
+        """.trimIndent()
+                    }
+
                     onClick { appState.value = Page.HOME }
                 }
                 div(className = "collapse navbar-collapse justify-content-center") {
