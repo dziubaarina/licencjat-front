@@ -417,14 +417,22 @@ class App : Application() {
                 }
             }
 
-            val errorText = span("", className = "small fw-bold")
+            val errorText = span("", className = "small fw-bold") {
+                setAttribute("style", "color: #000000 !important;")
+            }
             val errorAlert = div(className = "alert alert-danger py-2 mb-3 text-center rounded-3") { visible = false; add(errorText) }
 
             tag(TAG.BUTTON, I18n.tr("Zaloguj się", "Log in"), className = "btn dance-btn-primary btn-lg w-100 rounded-pill fw-bold") {
                 onClick {
                     val email = emailInput.value ?: ""; val pass = passwordInput?.value ?: ""
-                    if (email.isBlank() || pass.isBlank()) { errorText.content = "Podaj e-mail i hasło."; errorAlert.visible = true; return@onClick }
+                    if (email.isBlank() || pass.isBlank()) {
+                        errorText.content = I18n.tr("Podaj e-mail i hasło.", "Enter email and password.")
+                        errorAlert.visible = true
+                        return@onClick
+                    }
+
                     errorAlert.visible = false
+
                     ApiService.login(email, pass).then<dynamic> { res: dynamic ->
                         val token = res.token?.toString(); val role = res.role?.toString()
                         if (token != null && role != null) {
@@ -440,7 +448,12 @@ class App : Application() {
                             modal.hide()
                         }
                         null
-                    }.catch<dynamic> { errorAlert.visible = true; null }
+                    }.catch<dynamic> {
+                        // TUTAJ JEST NAPRAWA: Zanim pokażemy pasek, wpisujemy do niego tekst!
+                        errorText.content = I18n.tr("Błędny e-mail lub hasło!", "Invalid email or password!")
+                        errorAlert.visible = true
+                        null
+                    }
                 }
             }
         }
@@ -1616,14 +1629,15 @@ class App : Application() {
     }
 
     // ==========================================
-    // CZAT SPOŁECZNOŚCIOWY (Punkt 3)
+    // CZAT SPOŁECZNOŚCIOWY (Messenger Style)
     // ==========================================
     private fun Container.buildChatView() {
         val messages = io.kvision.state.ObservableListWrapper<dynamic>()
-        val selectedRecipients = io.kvision.state.ObservableListWrapper<Int>()
+        // null oznacza Czat Ogólny. Jeśli jest liczba, to czat z konkretną osobą.
+        val selectedRecipient = ObservableValue<Int?>(null)
 
-        fun loadMessages() {
-            ApiService.fetchGlobalChat().then<dynamic> { res ->
+        fun loadMessages(recipientId: Int?) {
+            ApiService.fetchChat(recipientId).then<dynamic> { res ->
                 messages.clear()
                 messages.addAll(res as Array<dynamic>)
                 null
@@ -1638,7 +1652,6 @@ class App : Application() {
             }.catch<dynamic> { _: Throwable -> null }
         }
 
-        loadMessages()
         loadUsers()
 
         val role = window.localStorage.getItem("userRole") ?: ""
@@ -1649,49 +1662,67 @@ class App : Application() {
             else -> Page.HOME
         }
 
+        // Jeśli admin - ładujemy od razu ogólny. W przeciwnym razie czat jest pusty, aż kogoś nie wybierze.
+        if (role == "ADMIN") loadMessages(null)
+
+        // Nasłuchiwanie zmian: Jeśli użytkownik kliknie kontakt, ładujemy jego wiadomości
+        selectedRecipient.subscribe { loadMessages(it) }
+
         div(className = "container py-5 mt-5 pt-5") {
             backButton(appState, backPage)
 
             h2(I18n.tr("Messenger Społeczności", "Community Messenger"), className = "fw-bold text-primary-dance mb-4")
 
             div(className = "row g-3") {
-                // LEWA KOLUMNA: Lista Kontaktów
+                // LEWA KOLUMNA: Lista Kontaktów (Klikalna!)
                 div(className = "col-md-4") {
                     div(className = "card bg-dark border-secondary p-3 h-100") {
                         h5(I18n.tr("Kontakty", "Contacts"), className = "text-white mb-3")
                         div(className = "contacts-list pe-2") {
                             height = 50.vh
                             setStyle("overflow-y", "auto")
+
+                            // Opcja "Czat Ogólny" widoczna TYLKO dla Admina
+                            if (role == "ADMIN") {
+                                bind(selectedRecipient) { sel ->
+                                    val isSelected = sel == null
+                                    div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
+                                        setStyle("cursor", "pointer")
+                                        onClick { selectedRecipient.value = null }
+                                        span("🌍 " + I18n.tr("Czat Ogólny", "General Chat"), className = "fw-bold " + if (isSelected) "text-black" else "text-info")
+                                    }
+                                }
+                            }
+
                             bind(DataManager.allUsers) { list ->
-                                if (list.isEmpty()) p("Brak użytkowników...", className="text-muted small")
+                                if (list.isEmpty()) p("Brak użytkowników...", className = "text-muted small")
                                 list.forEach { u ->
                                     val uid = u.id?.toString()?.toIntOrNull() ?: 0
                                     val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
 
+                                    // Nie pokazujemy samego siebie na liście
                                     if (uid != currentUserId) {
-                                        div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded border border-secondary hover-card bg-black") {
-                                            checkBox(label = "${u.firstName} ${u.lastName}") {
-                                                addCssClass("text-light")
-                                                addCssClass("mb-0")
-                                                onClick {
-                                                    if (value) {
-                                                        if (!selectedRecipients.contains(uid)) selectedRecipients.add(uid)
-                                                    } else {
-                                                        selectedRecipients.remove(uid)
-                                                    }
-                                                }
+                                        bind(selectedRecipient) { sel ->
+                                            val isSelected = sel == uid
+                                            div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
+                                                setStyle("cursor", "pointer")
+                                                onClick { selectedRecipient.value = uid }
+
+                                                span("${u.firstName} ${u.lastName}", className = "fw-bold " + if (isSelected) "text-black" else "text-light")
+
+                                                val uRole = u.role?.toString() ?: ""
+                                                val badgeClass = when(uRole) { "ADMIN" -> "bg-danger"; "CHOREOGRAPHER" -> "bg-info text-dark"; else -> "bg-secondary" }
+                                                span(uRole, className = "badge $badgeClass small")
                                             }
-                                            val uRole = u.role?.toString() ?: ""
-                                            val badgeClass = when(uRole) { "ADMIN" -> "bg-danger"; "CHOREOGRAPHER" -> "bg-primary-dance"; else -> "bg-secondary" }
-                                            span(uRole, className = "badge $badgeClass small")
                                         }
                                     }
                                 }
                             }
                         }
-                        if (role == "ADMIN" || role == "CHOREOGRAPHER") {
+                        // Przycisk grup widoczny tylko dla admina
+                        if (role == "ADMIN") {
                             tag(TAG.BUTTON, I18n.tr("Stwórz Grupę", "Create Group"), className = "btn btn-outline-info w-100 mt-3 btn-sm fw-bold") {
-                                onClick { window.alert(I18n.tr("Funkcja tworzenia stałych grup w budowie.", "Group creation feature under construction.")) }
+                                onClick { window.alert("Opcja w budowie.") }
                             }
                         }
                     }
@@ -1701,27 +1732,43 @@ class App : Application() {
                 div(className = "col-md-8") {
                     div(className = "card bg-dark border-secondary p-3 h-100") {
                         div(className = "chat-header border-bottom border-secondary pb-2 mb-3") {
-                            bind(selectedRecipients) { sel ->
-                                val txt = if (sel.isEmpty()) I18n.tr("Do wszystkich (Ogólny)", "To everyone (General)") else I18n.tr("Wybrano: ${sel.size} osób", "Selected: ${sel.size} people")
+                            bind(selectedRecipient) { sel ->
+                                val txt = if (sel == null) {
+                                    I18n.tr("Do wszystkich (Czat Ogólny)", "To everyone (General)")
+                                } else {
+                                    val u = DataManager.allUsers.find { it.id?.toString()?.toIntOrNull() == sel }
+                                    I18n.tr("Rozmowa z: ", "Chat with: ") + "${u?.firstName} ${u?.lastName}"
+                                }
                                 span(txt, className = "text-info fw-bold")
                             }
                         }
+
                         div(className = "chat-box mb-3 pe-2") {
                             height = 40.vh
                             setStyle("overflow-y", "auto")
                             bind(messages) { list ->
-                                if (list.isEmpty()) p(I18n.tr("Brak wiadomości.", "No messages."), className="text-muted text-center mt-3")
-                                list.forEach { m ->
-                                    div(className = "mb-2 p-2 rounded bg-black border border-secondary") {
-                                        div(className = "d-flex justify-content-between small text-muted mb-1") {
-                                            span(m.authorName?.toString() ?: "", className = "fw-bold text-light")
-                                            span(m.sentAt?.toString()?.take(16)?.replace("T", " ") ?: "")
+                                bind(selectedRecipient) { sel ->
+                                    if (sel == null && role != "ADMIN") {
+                                        div(className = "d-flex h-100 justify-content-center align-items-center") {
+                                            p(I18n.tr("Wybierz osobę z listy po lewej stronie, aby rozpocząć rozmowę.", "Select a person from the left to start chatting."), className = "text-muted text-center")
                                         }
-                                        p(m.content?.toString() ?: "", className = "text-white mb-0")
+                                    } else if (list.isEmpty()) {
+                                        p(I18n.tr("Brak wiadomości.", "No messages."), className = "text-muted text-center mt-3")
+                                    } else {
+                                        list.forEach { m ->
+                                            div(className = "mb-2 p-2 rounded bg-black border border-secondary") {
+                                                div(className = "d-flex justify-content-between small text-muted mb-1") {
+                                                    span(m.authorName?.toString() ?: "", className = "fw-bold text-light")
+                                                    span(m.sentAt?.toString()?.take(16)?.replace("T", " ") ?: "")
+                                                }
+                                                p(m.content?.toString() ?: "", className = "text-white mb-0")
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
+
                         div(className = "input-group mt-auto") {
                             val mInput = textInput(className = "form-control") {
                                 placeholder = I18n.tr("Wpisz wiadomość...", "Type a message...")
@@ -1730,9 +1777,16 @@ class App : Application() {
                                 onClick {
                                     val txt = mInput.value ?: ""
                                     if (txt.isNotBlank()) {
-                                        ApiService.sendChatMessage(txt, selectedRecipients.toList()).then<dynamic> {
+                                        // Zabezpieczenie frontendu: Jeśli tancerz/choreograf próbuje wysłać wiadomość bez wyboru osoby
+                                        if (role != "ADMIN" && selectedRecipient.value == null) {
+                                            window.alert(I18n.tr("Najpierw wybierz z kim chcesz pisać!", "Select who you want to chat with first!"))
+                                            return@onClick
+                                        }
+
+                                        val recList = selectedRecipient.value?.let { listOf(it) }
+                                        ApiService.sendChatMessage(txt, recList).then<dynamic> {
                                             mInput.value = ""
-                                            loadMessages()
+                                            loadMessages(selectedRecipient.value)
                                             null
                                         }.catch<dynamic> { _: Throwable -> window.alert("Błąd wysyłania wiadomości.") ; null }
                                     }
@@ -1741,7 +1795,7 @@ class App : Application() {
                             tag(TAG.BUTTON, className = "btn btn-outline-secondary px-3 ms-2") {
                                 setAttribute("title", I18n.tr("Odśwież czat", "Refresh chat"))
                                 tag(TAG.I, className = "fa-solid fa-rotate-right")
-                                onClick { loadMessages() }
+                                onClick { loadMessages(selectedRecipient.value) }
                             }
                         }
                     }
