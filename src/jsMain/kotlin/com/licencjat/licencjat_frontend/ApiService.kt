@@ -310,7 +310,6 @@ object ApiService {
         formData.append("type", type)
         if (file != null) formData.append("file", file as Blob)
 
-        // POPRAWA: Zmieniono "/admin/announcements" na "/announcements"
         return window.fetch("$BASE/announcements", org.w3c.fetch.RequestInit(
             method = "POST",
             headers = kotlin.js.json("Authorization" to "Bearer ${token()}"),
@@ -322,7 +321,6 @@ object ApiService {
     }
 
     fun updateAnnouncement(id: Int, title: String, content: String, type: String): kotlin.js.Promise<dynamic> {
-        // POPRAWA: Zmieniono "/admin/announcements" na "/announcements"
         return window.fetch("$BASE/announcements/$id", org.w3c.fetch.RequestInit(
             method = "PUT",
             headers = kotlin.js.json(
@@ -337,7 +335,6 @@ object ApiService {
     }
 
     fun deleteAnnouncement(id: Int): kotlin.js.Promise<dynamic> {
-        // POPRAWA: Zmieniono "/admin/announcements" na "/announcements"
         return window.fetch("$BASE/announcements/$id", org.w3c.fetch.RequestInit(
             method = "DELETE",
             headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
@@ -351,8 +348,9 @@ object ApiService {
     // CZAT (Messenger Style)
     // ==========================================
 
-    fun fetchGlobalChat(): kotlin.js.Promise<dynamic> {
-        return window.fetch("$BASE/chat", org.w3c.fetch.RequestInit(
+    fun fetchChat(recipientId: Int? = null): kotlin.js.Promise<dynamic> {
+        val url = if (recipientId != null) "$BASE/chat/private/$recipientId" else "$BASE/chat"
+        return window.fetch(url, org.w3c.fetch.RequestInit(
             method = "GET",
             headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
         )).then { response ->
