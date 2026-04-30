@@ -291,7 +291,7 @@ object ApiService {
     }
 
     // ==========================================
-    // OGŁOSZENIA (Z multimediami i edycją)
+    // OGŁOSZENIA
     // ==========================================
 
     fun fetchAnnouncements(): kotlin.js.Promise<dynamic> {
@@ -373,6 +373,30 @@ object ApiService {
         )).then { response ->
             if (response.ok) response.json()
             else throw Exception("Błąd wysyłania wiadomości: ${response.status}")
+        }
+    }
+
+    fun editChatMessage(messageId: Int, content: String): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/chat/$messageId", org.w3c.fetch.RequestInit(
+            method = "PUT",
+            headers = kotlin.js.json(
+                "Authorization" to "Bearer ${token()}",
+                "Content-Type" to "application/json"
+            ),
+            body = JSON.stringify(kotlin.js.json("content" to content))
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd edycji wiadomości")
+        }
+    }
+
+    fun deleteChatMessage(messageId: Int): kotlin.js.Promise<dynamic> {
+        return window.fetch("$BASE/chat/$messageId", org.w3c.fetch.RequestInit(
+            method = "DELETE",
+            headers = kotlin.js.json("Authorization" to "Bearer ${token()}")
+        )).then { response ->
+            if (response.ok) response
+            else throw Exception("Błąd usuwania wiadomości")
         }
     }
 }
