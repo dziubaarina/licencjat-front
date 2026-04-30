@@ -5,7 +5,7 @@ import org.w3c.files.Blob
 
 object ApiService {
 
-    private const val BASE = "http://localhost:8080"
+    private const val BASE = "https://danceinsense.onrender.com"
 
     private fun token() = window.localStorage.getItem("jwt") ?: ""
 
