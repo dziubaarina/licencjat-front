@@ -537,3 +537,20 @@ body:not([class*="theme-"]) small,
 body:not([class*="theme-"]) span {
     color: var(--color-text-muted) !important;
 }
+/* ================================================================
+   9. FIX: Kolor tekstu dla "Oczekuje" i Ogłoszeń (TYLKO TRYB CIEMNY)
+   ================================================================ */
+body.theme-dark .badge.bg-warning,
+body.theme-dark .badge.bg-info,
+body:not([class*="theme-"]) .badge.bg-warning,
+body:not([class*="theme-"]) .badge.bg-info {
+    color: #000000 !important;
+    font-weight: 800 !important;
+}
+
+body.theme-dark .badge.bg-warning *,
+body.theme-dark .badge.bg-info *,
+body:not([class*="theme-"]) .badge.bg-warning *,
+body:not([class*="theme-"]) .badge.bg-info * {
+    color: #000000 !important;
+}

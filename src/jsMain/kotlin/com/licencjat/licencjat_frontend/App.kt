@@ -20,6 +20,7 @@ import io.kvision.form.text.password
 import io.kvision.form.text.textArea
 import io.kvision.form.text.textInput
 import io.kvision.form.check.checkBox
+import io.kvision.form.select.select
 import kotlinx.browser.document
 import kotlinx.browser.window
 import org.w3c.files.Blob
@@ -90,7 +91,7 @@ class App : Application() {
             currentUserId.value = savedId
         }
 
-        // --- NAPRAWA STYLÓW DLA MODALI I FORMULARZY (Zintegrowane z accessibility.css) ---
+        // --- NAPRAWA STYLÓW DLA MODALI, FORMULARZY I CZATU ---
         val style = document.createElement("style")
         style.innerHTML = """
             .modal-content {
@@ -120,9 +121,14 @@ class App : Application() {
             body.theme-light .btn-close {
                 filter: none !important;
             }
+            
+            /* WYMUSZENIE CZARNEGO TEKSTU NA FIOLETOWYM ZAZNACZENIU W CZACIE */
+            .bg-primary-dance.hover-card span,
+            .bg-primary-dance.hover-card .fw-bold {
+                color: #000000 !important;
+            }
         """.trimIndent()
         document.head?.appendChild(style)
-        // -------------------------------------------------------------------------------
 
         root("kvapp") {
             bind(I18n.languageState) { _ ->
@@ -131,22 +137,23 @@ class App : Application() {
                 loginModal = createLoginModal()
                 registerModal = createRegisterModal()
 
-                vPanel(spacing = 0, className = "main-container bg-dark text-white min-vh-100") {
+                // ZMIANA: Dodano d-flex flex-column do głównego kontenera, aby stopka lądowała na dole
+                vPanel(spacing = 0, className = "main-container bg-dark text-white min-vh-100 d-flex flex-column") {
                     width = 100.vw
                     buildNavbar()
-                    div(className = "page-content") {
+
+                    // ZMIANA: flex-grow-1 rozciąga główny obszar strony, spychając stopkę w dół
+                    div(className = "page-content flex-grow-1") {
                         setAttribute("id", "main-content")
                         val contentContainer = this
                         bind(appState) { page ->
                             contentContainer.apply {
                                 when (page) {
                                     Page.HOME -> buildHomeView()
-                                    // Funkcje tancerza poniżej ładowane są z DancerView.kt
                                     Page.DANCER_DASHBOARD -> buildDancerDashboard(appState)
                                     Page.DANCER_TASKS -> buildDancerTasks(appState)
                                     Page.DANCER_SUBMISSIONS -> buildDancerSubmissions(appState)
                                     Page.DANCER_STATS -> buildDancerStats(appState)
-
                                     Page.CHOREO_DASHBOARD -> buildChoreoDashboard()
                                     Page.ADMIN_PANEL -> buildAdminPanel()
                                     Page.CHOREO_QUEUE -> buildChoreoQueue()
@@ -164,6 +171,9 @@ class App : Application() {
                             }
                         }
                     }
+
+                    // DODANA STOPKA
+                    buildFooter()
                 }
             }
         }
@@ -190,7 +200,6 @@ class App : Application() {
                         rich = true
                         content = """
             <svg height="45" viewBox="0 0 380 120" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
-                
                 <g transform="translate(-10, -20) scale(0.38)">
                     <path d="M 958 73 L 943 78 L 934 87 L 930 97 L 930 107 L 934 116 L 948 124 L 962 118 
                              L 965 112 L 964 101 L 960 102 L 959 114 L 953 119 L 946 119 L 937 112 L 934 100 
@@ -216,15 +225,12 @@ class App : Application() {
                           stroke-linecap="round"
                           stroke-linejoin="round"/>
                 </g>
-
                 <text x="20" y="72" font-family="'Montserrat', 'Inter', sans-serif" font-size="46" font-weight="400" fill="var(--color-text)" letter-spacing="1">Dance</text>
                 <text x="155" y="72" font-family="'Montserrat', 'Inter', sans-serif" font-size="46" font-weight="400" fill="var(--color-primary)" letter-spacing="1">In</text>
                 <text x="235" y="72" font-family="'Montserrat', 'Inter', sans-serif" font-size="46" font-weight="400" fill="var(--color-primary)" letter-spacing="1">ense</text>
-
             </svg>
         """.trimIndent()
                     }
-
                     onClick { appState.value = Page.HOME }
                 }
                 div(className = "collapse navbar-collapse justify-content-center") {
@@ -274,6 +280,82 @@ class App : Application() {
     }
 
     // ==========================================
+    // STOPKA (FOOTER)
+    // ==========================================
+    private fun Container.buildFooter() {
+        // Tło bg-black tworzy delikatny kontrast względem sekcji ogłoszeń (bg-dark)
+        tag(TAG.FOOTER, className = "bg-black py-4 border-top border-secondary mt-auto") {
+            div(className = "container") {
+                div(className = "row gy-4") {
+                    // Kolumna 1 - Info
+                    div(className = "col-md-4 text-center text-md-start") {
+                        h5("DanceInSense", className = "text-primary-dance fw-bold mb-3")
+                        p(I18n.tr("Twoja innowacyjna przestrzeń do rozwoju tanecznego. Wgrywaj nagrania, odbieraj precyzyjny feedback sekunda po sekundzie i stawaj się coraz lepszy dzięki wsparciu ekspertów.", "Your innovative space for dance development. Upload recordings, get precise second-by-second feedback, and improve with expert support."), className = "text-muted small")
+                    }
+
+                    // Kolumna 2 - Linki
+                    div(className = "col-md-4 text-center") {
+                        h5(I18n.tr("Szybkie linki", "Quick Links"), className = "fw-bold mb-3 text-white")
+                        ul(className = "list-unstyled small") {
+                            li(className = "mb-2") {
+                                link(I18n.tr("Strona Główna", "Home"), "javascript:void(0)", className = "text-muted text-decoration-none") {
+                                    onClick { appState.value = Page.HOME }
+                                }
+                            }
+                            // Jeśli niezalogowany - pokaż linki logowania/rejestracji
+                            bind(userRole) { role ->
+                                if (role == null) {
+                                    li(className = "mb-2") {
+                                        link(I18n.tr("Zaloguj się", "Login"), "javascript:void(0)", className = "text-muted text-decoration-none") {
+                                            onClick { loginModal?.show() }
+                                        }
+                                    }
+                                    li(className = "mb-2") {
+                                        link(I18n.tr("Zarejestruj się", "Sign up"), "javascript:void(0)", className = "text-muted text-decoration-none") {
+                                            onClick { registerModal?.show() }
+                                        }
+                                    }
+                                } else {
+                                    li(className = "mb-2") {
+                                        link(I18n.tr("Przejdź do Panelu", "Go to Dashboard"), "javascript:void(0)", className = "text-muted text-decoration-none") {
+                                            onClick {
+                                                appState.value = when (role) {
+                                                    "DANCER" -> Page.DANCER_DASHBOARD
+                                                    "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
+                                                    "ADMIN" -> Page.ADMIN_PANEL
+                                                    else -> Page.HOME
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Kolumna 3 - Kontakt
+                    div(className = "col-md-4 text-center text-md-end") {
+                        h5(I18n.tr("Kontakt", "Contact"), className = "fw-bold mb-3 text-white")
+                        p(className = "text-muted small mb-2") {
+                            tag(TAG.I, className = "fa-solid fa-envelope me-2")
+                            span("kontakt@danceapp.pl")
+                        }
+                        p(className = "text-muted small mb-3") {
+                            tag(TAG.I, className = "fa-solid fa-location-dot me-2")
+                            span("Białystok, Polska")
+                        }
+                    }
+                }
+
+                // Dolny pasek Copyright
+                div(className = "border-top border-secondary mt-4 pt-3 text-center text-muted small") {
+                    span("© 2026 DanceInSense. " + I18n.tr("Wszelkie prawa zastrzeżone.", "All rights reserved."))
+                }
+            }
+        }
+    }
+
+    // ==========================================
     // HOME & OGŁOSZENIA
     // ==========================================
     private fun Container.buildHomeView() {
@@ -297,6 +379,10 @@ class App : Application() {
                 }
             }
             buildFeaturesSection()
+
+            // DODANA SEKCJA: JAK TO DZIAŁA
+            buildHowItWorksSection()
+
             buildAnnouncementsSection()
         }
     }
@@ -312,6 +398,50 @@ class App : Application() {
                     featureCard("fa-users", I18n.tr("Dla Tancerzy", "For Dancers"), I18n.tr("Otrzymuj konkretny feedback do swoich ruchów. Wgrywaj nagrania i śledź swój progres w dedykowanym panelu.", "Get specific feedback on your moves. Upload recordings and track progress."))
                     featureCard("fa-video", I18n.tr("Dla Choreografów", "For Choreographers"), I18n.tr("Zarządzaj zadaniami. Innowacyjny odtwarzacz wideo z notatkami czasowymi ułatwi Ci szybką ocenę techniki.", "Manage tasks. Innovative video player with timestamped notes."))
                     featureCard("fa-comments", I18n.tr("Przestrzeń Komunikacji", "Communication Space"), I18n.tr("Bezpośredni kontakt trenera z tancerzem. Wymieniajcie się uwagami, aby każdy trening był jeszcze efektywniejszy.", "Direct contact between coach and dancer. Exchange notes to make training more effective."))
+                }
+            }
+        }
+    }
+
+    // SEKCJA JAK TO DZIAŁA
+    private fun Container.buildHowItWorksSection() {
+        div(className = "bg-dark py-5 border-top border-secondary") {
+            div(className = "container py-4") {
+                div(className = "text-center mb-5") {
+                    h2(I18n.tr("Jak to działa?", "How it works?"), className = "fw-bold text-white")
+                    p(I18n.tr("Proces nauki jeszcze nigdy nie był tak prosty.", "Learning process has never been easier."), className = "text-muted")
+                }
+                div(className = "row g-4 text-center") {
+                    div(className = "col-md-4") {
+                        div(className = "p-4 hover-card") {
+                            div(className = "bg-primary-dance text-black rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm") {
+                                setStyle("width", "80px"); setStyle("height", "80px")
+                                tag(TAG.I, className = "fa-solid fa-list-check fa-2x")
+                            }
+                            h4(I18n.tr("1. Wybierz zadanie", "1. Choose a task"), className = "fw-bold text-white mb-2")
+                            p(I18n.tr("Przeglądaj wyzwania przygotowane przez Twoich choreografów i zapoznaj się z wideo wzorcowym.", "Browse challenges prepared by your choreographers and check the reference video."), className = "text-muted small")
+                        }
+                    }
+                    div(className = "col-md-4") {
+                        div(className = "p-4 hover-card") {
+                            div(className = "bg-primary-dance text-black rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm") {
+                                setStyle("width", "80px"); setStyle("height", "80px")
+                                tag(TAG.I, className = "fa-solid fa-video fa-2x")
+                            }
+                            h4(I18n.tr("2. Wgraj nagranie", "2. Upload recording"), className = "fw-bold text-white mb-2")
+                            p(I18n.tr("Nagraj swoje wykonanie układu i prześlij je bezpośrednio na platformę z dowolnego urządzenia.", "Record your performance and upload it directly to the platform from any device."), className = "text-muted small")
+                        }
+                    }
+                    div(className = "col-md-4") {
+                        div(className = "p-4 hover-card") {
+                            div(className = "bg-primary-dance text-black rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm") {
+                                setStyle("width", "80px"); setStyle("height", "80px")
+                                tag(TAG.I, className = "fa-solid fa-star fa-2x")
+                            }
+                            h4(I18n.tr("3. Odbierz feedback", "3. Get feedback"), className = "fw-bold text-white mb-2")
+                            p(I18n.tr("Instruktor oceni Twój taniec, dodając precyzyjne komentarze w konkretnych sekundach wideo.", "The instructor will grade your dance, adding precise comments at specific video seconds."), className = "text-muted small")
+                        }
+                    }
                 }
             }
         }
@@ -334,8 +464,6 @@ class App : Application() {
                             list.forEach { ann ->
                                 div(className = "col-md-6") {
                                     div(className = "card bg-dark text-white shadow-sm p-0 h-100 border-0 border-start border-5 border-primary overflow-hidden") {
-
-                                        // WYSWIETLANIE MULTIMEDIÓW
                                         val media = ann.mediaUrl?.toString()
                                         if (!media.isNullOrBlank()) {
                                             val url = toVideoUrl(media)
@@ -352,16 +480,12 @@ class App : Application() {
                                                 }
                                             }
                                         }
-
                                         div(className = "p-3 d-flex flex-column h-100") {
-                                            span(ann.type?.toString() ?: "Info", className = "badge bg-secondary mb-2 align-self-start")
+                                            span(ann.type?.toString() ?: "Info", className = "badge bg-info mb-2 align-self-start")
                                             h5(ann.title?.toString() ?: "", className = "fw-bold text-white")
-
-                                            // POPRAWKA: Dodano zachowanie enterów poprzez styl white-space: pre-wrap
                                             p(ann.content?.toString() ?: "", className = "text-muted small mb-3") {
                                                 setStyle("white-space", "pre-wrap")
                                             }
-
                                             div(className = "mt-auto text-end small text-muted fw-bold") {
                                                 span(ann.date?.toString()?.take(10) ?: "")
                                             }
@@ -399,12 +523,10 @@ class App : Application() {
                 passwordInput = textInput(type = io.kvision.html.InputType.PASSWORD, className = "form-control login-input rounded-start-3") {
                     placeholder = I18n.tr("wpisz hasło", "enter password")
                 }
-
                 tag(TAG.BUTTON, className = "btn dance-btn-primary rounded-end-3") {
                     setAttribute("type", "button")
                     setAttribute("title", I18n.tr("Pokaż/Ukryj hasło", "Show/Hide password"))
                     val iconTag = tag(TAG.I, className = "fa-solid fa-eye-slash text-light")
-
                     onClick {
                         if (passwordInput?.type == io.kvision.html.InputType.PASSWORD) {
                             passwordInput?.type = io.kvision.html.InputType.TEXT
@@ -417,9 +539,7 @@ class App : Application() {
                 }
             }
 
-            val errorText = span("", className = "small fw-bold") {
-                setAttribute("style", "color: #000000 !important;")
-            }
+            val errorText = span("", className = "small fw-bold") { setAttribute("style", "color: #000000 !important;") }
             val errorAlert = div(className = "alert alert-danger py-2 mb-3 text-center rounded-3") { visible = false; add(errorText) }
 
             tag(TAG.BUTTON, I18n.tr("Zaloguj się", "Log in"), className = "btn dance-btn-primary btn-lg w-100 rounded-pill fw-bold") {
@@ -449,7 +569,6 @@ class App : Application() {
                         }
                         null
                     }.catch<dynamic> {
-                        // TUTAJ JEST NAPRAWA: Zanim pokażemy pasek, wpisujemy do niego tekst!
                         errorText.content = I18n.tr("Błędny e-mail lub hasło!", "Invalid email or password!")
                         errorAlert.visible = true
                         null
@@ -470,16 +589,12 @@ class App : Application() {
 
         modal.vPanel(className = "p-4") {
             h3(I18n.tr("Utwórz konto w DANCE APP", "Create an account"), className = "text-center fw-bold text-primary-dance mb-4")
-
             label(I18n.tr("Imię", "First Name"), className = "form-label fw-bold mb-1")
             val firstNameInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "Wpisz imię" }
-
             label(I18n.tr("Nazwisko", "Last Name"), className = "form-label fw-bold mb-1")
             val lastNameInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "Wpisz nazwisko" }
-
             label(I18n.tr("E-mail", "Email"), className = "form-label fw-bold mb-1")
             val emailInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "twoj@email.com" }
-
             label(I18n.tr("Hasło", "Password"), className = "form-label fw-bold mb-1")
             val passInput = textInput(type = io.kvision.html.InputType.PASSWORD, className = "form-control login-input rounded-3 mb-4") { placeholder = "Wpisz hasło" }
 
@@ -535,7 +650,7 @@ class App : Application() {
         }.catch<dynamic> { _: Throwable -> loading.value = false; null }
 
         div(className = "container py-5 mt-5 pt-5") {
-            backButton(appState, Page.DANCER_DASHBOARD)
+            backButton(appState, Page.CHOREO_DASHBOARD)
             h2(I18n.tr("Kolejka do oceny", "Grading Queue"), className = "fw-bold mb-4")
             div {
                 bind(loading) { isLoading ->
@@ -579,7 +694,7 @@ class App : Application() {
                                                         if (isRestoredLocal) {
                                                             span(I18n.tr("Oczekuje na zaktualizowany feedback", "Awaiting updated feedback"), className = "badge border border-warning text-warning p-2")
                                                         } else {
-                                                            span(I18n.tr("Oczekuje", "Pending"), className = "badge bg-warning text-dark")
+                                                            span(I18n.tr("Oczekuje", "Pending"), className = "badge bg-warning")
                                                         }
                                                     }
                                                     td {
@@ -920,7 +1035,7 @@ class App : Application() {
         div(className = "container py-5 mt-5") {
             h2(I18n.tr("Panel Admina", "Admin Panel"), className = "fw-bold text-primary-dance mb-4 pt-4")
             div(className = "row g-4 justify-content-center") {
-                dashboardCard("fa-users-cog", I18n.tr("Zarządzanie Użytkownikami", "User Management"), I18n.tr("Awansowanie, blokowanie i usuwanie kont.", "Promoting, blocking and deleting accounts.")) { appState.value = Page.ADMIN_USERS }
+                dashboardCard("fa-users-cog", I18n.tr("Zarządzanie Użytkownikami", "User Management"), I18n.tr("Zarządzaj kontami, zmieniaj role, blokuj i usuwaj.", "Manage accounts, change roles, block and delete.")) { appState.value = Page.ADMIN_USERS }
                 dashboardCard("fa-shield", I18n.tr("Globalna Moderacja", "Global Moderation"), I18n.tr("Wgląd w postępy tancerzy i edycja komentarzy.", "Insight into dancers' progress and comment editing.")) { appState.value = Page.ADMIN_MODERATION }
                 dashboardCard("fa-list-check", I18n.tr("Zarządzanie Zadaniami", "Task Management"), I18n.tr("Edycja i usuwanie wyzwań.", "Editing and deleting challenges.")) { appState.value = Page.ADMIN_TASKS }
                 dashboardCard("fa-bullhorn", I18n.tr("Zarządzanie Ogłoszeniami", "Announcements Management"), I18n.tr("Tworzenie nowych wpisów dla wszystkich.", "Creating new posts for everyone.")) { appState.value = Page.ADMIN_ANNOUNCEMENTS }
@@ -931,6 +1046,41 @@ class App : Application() {
 
     private fun Container.buildAdminVerify() {
         appState.value = Page.ADMIN_USERS
+    }
+
+    // --- FUNKCJA POMOCNICZA: OKIENKO DO ZMIANY ROLI ---
+    private fun showChangeRoleModal(userId: Int, currentRole: String, onSuccess: () -> Unit) {
+        val modal = Modal(I18n.tr("Zmień rolę", "Change Role"), closeButton = true, animation = true)
+        modal.div(className = "p-3") {
+            p(I18n.tr("Wybierz nową rolę dla tego użytkownika:", "Select a new role for this user:"), className = "text-light")
+            val roleSelect = select(
+                options = listOf("DANCER" to "DANCER", "CHOREOGRAPHER" to "CHOREOGRAPHER", "ADMIN" to "ADMIN"),
+                value = currentRole
+            ) {
+                addCssClass("form-select")
+                addCssClass("form-select-lg")
+                addCssClass("mb-4")
+            }
+            tag(TAG.BUTTON, I18n.tr("Zapisz", "Save"), className = "btn dance-btn-primary w-100 fw-bold") {
+                onClick {
+                    val newRole = roleSelect.value ?: currentRole
+                    if (newRole != currentRole) {
+                        ApiService.updateUserRole(userId, newRole).then<dynamic> {
+                            showToast(I18n.tr("✔ Rola zmieniona na ", "✔ Role changed to ") + newRole)
+                            modal.hide()
+                            onSuccess()
+                            null
+                        }.catch<dynamic> { _: Throwable ->
+                            window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error."))
+                            null
+                        }
+                    } else {
+                        modal.hide()
+                    }
+                }
+            }
+        }
+        modal.show()
     }
 
     // --- 1. ZARZĄDZANIE UŻYTKOWNIKAMI ---
@@ -972,7 +1122,6 @@ class App : Application() {
                                             list.forEach { u ->
                                                 tr {
                                                     val userId = u.id?.toString()?.toIntOrNull() ?: 0
-
                                                     val active = u.isActive == true || u.active == true || u.isActive?.toString() == "true" || u.active?.toString() == "true"
                                                     val role = u.role?.toString() ?: "—"
 
@@ -985,19 +1134,8 @@ class App : Application() {
                                                     }
                                                     td {
                                                         div(className = "d-flex gap-2") {
-                                                            if (role == "DANCER") {
-                                                                tag(TAG.BUTTON, I18n.tr("Awansuj", "Promote"), className = "btn btn-sm btn-outline-info") {
-                                                                    setAttribute("title", I18n.tr("Awansuj na Choreografa", "Promote to Choreographer"))
-                                                                    onClick {
-                                                                        if (window.confirm(I18n.tr("Czy na pewno chcesz awansować tego tancerza na CHOREOGRAPHER?", "Are you sure you want to promote this dancer to CHOREOGRAPHER?"))) {
-                                                                            ApiService.updateUserRole(userId, "CHOREOGRAPHER").then<dynamic> {
-                                                                                showToast(I18n.tr("✔ Awansowano użytkownika.", "✔ User promoted."))
-                                                                                loadUsers()
-                                                                                null
-                                                                            }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
-                                                                        }
-                                                                    }
-                                                                }
+                                                            tag(TAG.BUTTON, I18n.tr("Zmień Rolę", "Change Role"), className = "btn btn-sm btn-outline-info") {
+                                                                onClick { showChangeRoleModal(userId, role) { loadUsers() } }
                                                             }
                                                             tag(TAG.BUTTON, if (active) I18n.tr("Zablokuj", "Block") else I18n.tr("Odblokuj", "Unblock"),
                                                                 className = if (active) "btn btn-sm btn-outline-warning" else "btn btn-sm btn-outline-success") {
@@ -1563,7 +1701,7 @@ class App : Application() {
                                     li(className = "list-group-item bg-dark border-secondary mb-2") {
                                         div(className = "d-flex justify-content-between align-items-center") {
                                             div {
-                                                span(ann.type?.toString() ?: "", className = "badge bg-info text-dark me-2")
+                                                span(ann.type?.toString() ?: "Info", className = "badge bg-info text-dark me-2")
                                                 strong(ann.title?.toString() ?: "", className = "text-light")
                                                 p(ann.content?.toString() ?: "", className = "text-muted small mb-0 mt-1")
                                             }
@@ -1628,15 +1766,62 @@ class App : Application() {
         modal.show()
     }
 
+    // --- FUNKCJA POMOCNICZA: OKIENKO DO TWORZENIA GRUPY ---
+    private fun showCreateGroupModal(users: List<dynamic>, selectedRecipients: ObservableValue<List<Int>?>) {
+        val modal = Modal("Nowa Wiadomość Grupowa", closeButton = true, animation = true)
+        val selectedIds = mutableSetOf<Int>()
+
+        modal.div(className = "p-3") {
+            p("Wybierz uczestników, do których chcesz wysłać wiadomość:", className = "text-light mb-3")
+
+            div(className = "bg-dark border border-secondary p-2 rounded mb-4") {
+                setStyle("max-height", "250px")
+                setStyle("overflow-y", "auto")
+
+                users.forEach { u ->
+                    val uid = u.id?.toString()?.toIntOrNull() ?: 0
+                    val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
+                    if (uid != currentUserId) {
+                        div(className = "form-check mb-2") {
+                            checkBox(label = "${u.firstName} ${u.lastName} (${u.role})") {
+                                addCssClass("text-light")
+                                onClick {
+                                    if (value) selectedIds.add(uid) else selectedIds.remove(uid)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            tag(TAG.BUTTON, "Rozpocznij konwersację", className = "btn dance-btn-primary w-100 fw-bold") {
+                onClick {
+                    if (selectedIds.size >= 2) {
+                        selectedRecipients.value = selectedIds.toList()
+                        modal.hide()
+                    } else {
+                        window.alert("Wybierz co najmniej 2 osoby z listy, aby wysłać wiadomość grupową.")
+                    }
+                }
+            }
+        }
+        modal.show()
+    }
+
     // ==========================================
-    // CZAT SPOŁECZNOŚCIOWY (Messenger Style)
+    // CZAT SPOŁECZNOŚCIOWY (Messenger Style z Edycją i Usuwaniem)
     // ==========================================
     private fun Container.buildChatView() {
         val messages = io.kvision.state.ObservableListWrapper<dynamic>()
-        // null oznacza Czat Ogólny. Jeśli jest liczba, to czat z konkretną osobą.
-        val selectedRecipient = ObservableValue<Int?>(null)
+        val selectedRecipients = ObservableValue<List<Int>?>(null)
 
-        fun loadMessages(recipientId: Int?) {
+        fun loadMessages(recipients: List<Int>?) {
+            if (recipients != null && recipients.size > 1) {
+                messages.clear()
+                return
+            }
+
+            val recipientId = recipients?.firstOrNull()
             ApiService.fetchChat(recipientId).then<dynamic> { res ->
                 messages.clear()
                 messages.addAll(res as Array<dynamic>)
@@ -1662,11 +1847,13 @@ class App : Application() {
             else -> Page.HOME
         }
 
-        // Jeśli admin - ładujemy od razu ogólny. W przeciwnym razie czat jest pusty, aż kogoś nie wybierze.
-        if (role == "ADMIN") loadMessages(null)
+        if (role == "ADMIN") {
+            selectedRecipients.value = null
+        } else {
+            selectedRecipients.value = emptyList()
+        }
 
-        // Nasłuchiwanie zmian: Jeśli użytkownik kliknie kontakt, ładujemy jego wiadomości
-        selectedRecipient.subscribe { loadMessages(it) }
+        selectedRecipients.subscribe { loadMessages(it) }
 
         div(className = "container py-5 mt-5 pt-5") {
             backButton(appState, backPage)
@@ -1674,7 +1861,6 @@ class App : Application() {
             h2(I18n.tr("Messenger Społeczności", "Community Messenger"), className = "fw-bold text-primary-dance mb-4")
 
             div(className = "row g-3") {
-                // LEWA KOLUMNA: Lista Kontaktów (Klikalna!)
                 div(className = "col-md-4") {
                     div(className = "card bg-dark border-secondary p-3 h-100") {
                         h5(I18n.tr("Kontakty", "Contacts"), className = "text-white mb-3")
@@ -1682,33 +1868,48 @@ class App : Application() {
                             height = 50.vh
                             setStyle("overflow-y", "auto")
 
-                            // Opcja "Czat Ogólny" widoczna TYLKO dla Admina
-                            if (role == "ADMIN") {
-                                bind(selectedRecipient) { sel ->
-                                    val isSelected = sel == null
-                                    div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
-                                        setStyle("cursor", "pointer")
-                                        onClick { selectedRecipient.value = null }
-                                        span("🌍 " + I18n.tr("Czat Ogólny", "General Chat"), className = "fw-bold " + if (isSelected) "text-black" else "text-info")
-                                    }
-                                }
-                            }
-
                             bind(DataManager.allUsers) { list ->
-                                if (list.isEmpty()) p("Brak użytkowników...", className = "text-muted small")
-                                list.forEach { u ->
-                                    val uid = u.id?.toString()?.toIntOrNull() ?: 0
-                                    val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
+                                bind(selectedRecipients) { sel ->
 
-                                    // Nie pokazujemy samego siebie na liście
-                                    if (uid != currentUserId) {
-                                        bind(selectedRecipient) { sel ->
-                                            val isSelected = sel == uid
+                                    if (role == "ADMIN") {
+                                        val isSelected = sel == null
+                                        div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
+                                            setStyle("cursor", "pointer")
+                                            onClick { selectedRecipients.value = null }
+
+                                            span("🌍 " + I18n.tr("Czat Ogólny", "General Chat"), className = "fw-bold") {
+                                                if (isSelected) setAttribute("style", "color: #000000 !important;")
+                                                else setAttribute("style", "color: #0dcaf0 !important;")
+                                            }
+                                        }
+                                    }
+
+                                    if (sel != null && sel.size > 1) {
+                                        div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded bg-primary-dance") {
+                                            span("👥 Nowa Wiadomość (${sel.size} os.)", className = "fw-bold text-dark") {
+                                                setAttribute("style", "color: #000000 !important;")
+                                            }
+                                        }
+                                    }
+
+                                    if (list.isEmpty()) {
+                                        p("Brak użytkowników...", className = "text-muted small")
+                                    }
+
+                                    list.forEach { u ->
+                                        val uid = u.id?.toString()?.toIntOrNull() ?: 0
+                                        val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
+
+                                        if (uid != currentUserId) {
+                                            val isSelected = sel != null && sel.size == 1 && sel.contains(uid)
                                             div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
                                                 setStyle("cursor", "pointer")
-                                                onClick { selectedRecipient.value = uid }
+                                                onClick { selectedRecipients.value = listOf(uid) }
 
-                                                span("${u.firstName} ${u.lastName}", className = "fw-bold " + if (isSelected) "text-black" else "text-light")
+                                                span("${u.firstName} ${u.lastName}", className = "fw-bold") {
+                                                    if (isSelected) setAttribute("style", "color: #000000 !important;")
+                                                    else setAttribute("style", "color: #f5f5f5 !important;")
+                                                }
 
                                                 val uRole = u.role?.toString() ?: ""
                                                 val badgeClass = when(uRole) { "ADMIN" -> "bg-danger"; "CHOREOGRAPHER" -> "bg-info text-dark"; else -> "bg-secondary" }
@@ -1719,25 +1920,27 @@ class App : Application() {
                                 }
                             }
                         }
-                        // Przycisk grup widoczny tylko dla admina
                         if (role == "ADMIN") {
                             tag(TAG.BUTTON, I18n.tr("Stwórz Grupę", "Create Group"), className = "btn btn-outline-info w-100 mt-3 btn-sm fw-bold") {
-                                onClick { window.alert("Opcja w budowie.") }
+                                onClick { showCreateGroupModal(DataManager.allUsers.toList(), selectedRecipients) }
                             }
                         }
                     }
                 }
 
-                // PRAWA KOLUMNA: Okno Rozmowy
                 div(className = "col-md-8") {
                     div(className = "card bg-dark border-secondary p-3 h-100") {
                         div(className = "chat-header border-bottom border-secondary pb-2 mb-3") {
-                            bind(selectedRecipient) { sel ->
+                            bind(selectedRecipients) { sel ->
                                 val txt = if (sel == null) {
                                     I18n.tr("Do wszystkich (Czat Ogólny)", "To everyone (General)")
-                                } else {
-                                    val u = DataManager.allUsers.find { it.id?.toString()?.toIntOrNull() == sel }
+                                } else if (sel.size > 1) {
+                                    I18n.tr("Wysyłanie do wybranych ", "Sending to ") + "${sel.size}" + I18n.tr(" osób", " people")
+                                } else if (sel.size == 1) {
+                                    val u = DataManager.allUsers.find { it.id?.toString()?.toIntOrNull() == sel.first() }
                                     I18n.tr("Rozmowa z: ", "Chat with: ") + "${u?.firstName} ${u?.lastName}"
+                                } else {
+                                    ""
                                 }
                                 span(txt, className = "text-info fw-bold")
                             }
@@ -1747,21 +1950,75 @@ class App : Application() {
                             height = 40.vh
                             setStyle("overflow-y", "auto")
                             bind(messages) { list ->
-                                bind(selectedRecipient) { sel ->
-                                    if (sel == null && role != "ADMIN") {
+                                bind(selectedRecipients) { sel ->
+                                    val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
+
+                                    if (sel != null && sel.isEmpty() && role != "ADMIN") {
                                         div(className = "d-flex h-100 justify-content-center align-items-center") {
                                             p(I18n.tr("Wybierz osobę z listy po lewej stronie, aby rozpocząć rozmowę.", "Select a person from the left to start chatting."), className = "text-muted text-center")
+                                        }
+                                    } else if (sel != null && sel.size > 1) {
+                                        div(className = "d-flex h-100 justify-content-center align-items-center") {
+                                            p(I18n.tr("Napisz wiadomość na dole. Zostanie ona wysłana do wszystkich zaznaczonych osób.", "Write a message below. It will be sent to all selected people."), className = "text-muted text-center")
                                         }
                                     } else if (list.isEmpty()) {
                                         p(I18n.tr("Brak wiadomości.", "No messages."), className = "text-muted text-center mt-3")
                                     } else {
                                         list.forEach { m ->
+                                            val mId = m.id?.toString()?.toIntOrNull() ?: 0
+                                            val mAuthorId = m.authorId?.toString()?.toIntOrNull() ?: 0
+                                            val isMine = mAuthorId == currentUserId
+                                            val isEditing = ObservableValue(false)
+
                                             div(className = "mb-2 p-2 rounded bg-black border border-secondary") {
-                                                div(className = "d-flex justify-content-between small text-muted mb-1") {
-                                                    span(m.authorName?.toString() ?: "", className = "fw-bold text-light")
-                                                    span(m.sentAt?.toString()?.take(16)?.replace("T", " ") ?: "")
+                                                bind(isEditing) { editing ->
+                                                    if (editing) {
+                                                        val editInput = textInput(className = "form-control mb-2") {
+                                                            value = m.content?.toString() ?: ""
+                                                        }
+                                                        div(className = "d-flex gap-2") {
+                                                            tag(TAG.BUTTON, I18n.tr("Zapisz", "Save"), className = "btn btn-sm btn-success") {
+                                                                onClick {
+                                                                    val newVal = editInput.value ?: ""
+                                                                    ApiService.editChatMessage(mId, newVal).then<dynamic> {
+                                                                        loadMessages(selectedRecipients.value)
+                                                                        null
+                                                                    }.catch<dynamic> { _: Throwable -> window.alert("Błąd edycji wiadomości."); null }
+                                                                }
+                                                            }
+                                                            tag(TAG.BUTTON, I18n.tr("Anuluj", "Cancel"), className = "btn btn-sm btn-secondary") {
+                                                                onClick { isEditing.value = false }
+                                                            }
+                                                        }
+                                                    } else {
+                                                        div(className = "d-flex justify-content-between align-items-center small text-muted mb-1") {
+                                                            span(m.authorName?.toString() ?: "", className = "fw-bold text-light")
+
+                                                            div(className = "d-flex align-items-center") {
+                                                                span(m.createdAt?.toString()?.take(16)?.replace("T", " ") ?: "", className = "me-2")
+
+                                                                if (isMine) {
+                                                                    tag(TAG.I, className = "fa-solid fa-pen text-info me-2 hover-card") {
+                                                                        setStyle("cursor", "pointer")
+                                                                        onClick { isEditing.value = true }
+                                                                    }
+                                                                    tag(TAG.I, className = "fa-solid fa-trash text-danger hover-card") {
+                                                                        setStyle("cursor", "pointer")
+                                                                        onClick {
+                                                                            if (window.confirm(I18n.tr("Czy na pewno usunąć tę wiadomość?", "Delete this message?"))) {
+                                                                                ApiService.deleteChatMessage(mId).then<dynamic> {
+                                                                                    loadMessages(selectedRecipients.value)
+                                                                                    null
+                                                                                }.catch<dynamic> { _: Throwable -> window.alert("Błąd usuwania wiadomości."); null }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        p(m.content?.toString() ?: "", className = "text-white mb-0")
+                                                    }
                                                 }
-                                                p(m.content?.toString() ?: "", className = "text-white mb-0")
                                             }
                                         }
                                     }
@@ -1773,29 +2030,28 @@ class App : Application() {
                             val mInput = textInput(className = "form-control") {
                                 placeholder = I18n.tr("Wpisz wiadomość...", "Type a message...")
                             }
-                            tag(TAG.BUTTON, I18n.tr("Wyślij", "Send"), className = "btn dance-btn-primary fw-bold px-4") {
+                            tag(TAG.BUTTON, I18n.tr("Wyślij", "Send"), className = "btn dance-btn-primary fw-bold px-4 rounded-end") {
                                 onClick {
                                     val txt = mInput.value ?: ""
                                     if (txt.isNotBlank()) {
-                                        // Zabezpieczenie frontendu: Jeśli tancerz/choreograf próbuje wysłać wiadomość bez wyboru osoby
-                                        if (role != "ADMIN" && selectedRecipient.value == null) {
+                                        val recs = selectedRecipients.value
+                                        if (role != "ADMIN" && (recs == null || recs.isEmpty())) {
                                             window.alert(I18n.tr("Najpierw wybierz z kim chcesz pisać!", "Select who you want to chat with first!"))
                                             return@onClick
                                         }
 
-                                        val recList = selectedRecipient.value?.let { listOf(it) }
-                                        ApiService.sendChatMessage(txt, recList).then<dynamic> {
+                                        ApiService.sendChatMessage(txt, recs).then<dynamic> {
                                             mInput.value = ""
-                                            loadMessages(selectedRecipient.value)
+                                            if (recs != null && recs.size > 1) {
+                                                showToast("✔ Wysłano do wszystkich zaznaczonych!")
+                                                selectedRecipients.value = if (role == "ADMIN") null else emptyList()
+                                            } else {
+                                                loadMessages(selectedRecipients.value)
+                                            }
                                             null
                                         }.catch<dynamic> { _: Throwable -> window.alert("Błąd wysyłania wiadomości.") ; null }
                                     }
                                 }
-                            }
-                            tag(TAG.BUTTON, className = "btn btn-outline-secondary px-3 ms-2") {
-                                setAttribute("title", I18n.tr("Odśwież czat", "Refresh chat"))
-                                tag(TAG.I, className = "fa-solid fa-rotate-right")
-                                onClick { loadMessages(selectedRecipient.value) }
                             }
                         }
                     }
@@ -1803,7 +2059,6 @@ class App : Application() {
             }
         }
     }
-
 
     // ==========================================
     // PLAYER — SIDE BY SIDE + AUTO TIMESTAMP
