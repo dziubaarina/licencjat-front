@@ -2,7 +2,7 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 COPY . .
 RUN chmod +x ./gradlew
-RUN ./gradlew browserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx256m -XX:MaxMetaspaceSize=256m"
+RUN ./gradlew browserDistribution --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx192m -XX:MaxMetaspaceSize=192m"
 
 FROM nginx:stable-alpine
 
