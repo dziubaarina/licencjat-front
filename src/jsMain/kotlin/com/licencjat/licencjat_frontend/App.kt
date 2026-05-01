@@ -2325,7 +2325,7 @@ fun toVideoUrl(path: String?): String {
     if (path.startsWith("http")) return path
     val normalized = path.replace("\\", "/")
     val clean = normalized.trimStart('/')
-    return "https://dance-in-sense-front.onrender.com"
+    return "https://dance-in-sense.onrender.com"
 }
 
 fun formatTime(seconds: Int): String {
