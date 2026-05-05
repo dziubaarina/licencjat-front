@@ -544,7 +544,8 @@ class App : Application() {
 
             tag(TAG.BUTTON, I18n.tr("Zaloguj się", "Log in"), className = "btn dance-btn-primary btn-lg w-100 rounded-pill fw-bold") {
                 onClick {
-                    val email = emailInput.value ?: ""; val pass = passwordInput?.value ?: ""
+                    val email = emailInput.getElement()?.asDynamic()?.value?.toString() ?: ""
+                    val pass = passwordInput?.getElement()?.asDynamic()?.value?.toString() ?: ""
                     if (email.isBlank() || pass.isBlank()) {
                         errorText.content = I18n.tr("Podaj e-mail i hasło.", "Enter email and password.")
                         errorAlert.visible = true
