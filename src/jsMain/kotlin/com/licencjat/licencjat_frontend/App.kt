@@ -2432,6 +2432,7 @@ fun formatTime(seconds: Int): String {
     return "$mm:$ss"
 }
 
+
 fun showToast(message: String) {
     val toast = document.createElement("div")
     toast.asDynamic().className = "dance-toast"
