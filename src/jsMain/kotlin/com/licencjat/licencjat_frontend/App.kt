@@ -69,7 +69,7 @@ enum class Page {
     DANCER_TASKS, DANCER_SUBMISSIONS, DANCER_STATS,
     CHOREO_QUEUE, CHOREO_TASKS, CHOREO_ARCHIVE,
     ADMIN_VERIFY, ADMIN_USERS, ADMIN_MODERATION, ADMIN_TASKS, ADMIN_USER_DETAILS,
-    CHAT, ADMIN_ANNOUNCEMENTS
+    CHAT, ADMIN_ANNOUNCEMENTS, BLOCKED
 }
 
 class App : Application() {
@@ -167,6 +167,7 @@ class App : Application() {
                                     Page.PLAYER -> buildPlayerView()
                                     Page.CHAT -> buildChatView()
                                     Page.ADMIN_ANNOUNCEMENTS -> buildAdminAnnouncements()
+                                    Page.BLOCKED -> buildBlockedView()
                                 }
                             }
                         }
@@ -562,11 +563,19 @@ class App : Application() {
                                 val list = users as Array<dynamic>
                                 val found = list.find { it.email?.toString() == email }
                                 val userId = found?.id?.toString()?.toIntOrNull()
+                                val isActive = found?.isActive == true || found?.active == true || found?.isActive?.toString() == "true" || found?.active?.toString() == "true"
+
                                 if (userId != null) { window.localStorage.setItem("userId", userId.toString()); currentUserId.value = userId }
+
+                                userRole.value = role
+                                if (!isActive) {
+                                    appState.value = Page.BLOCKED
+                                } else {
+                                    appState.value = when (role) { "DANCER" -> Page.DANCER_DASHBOARD; "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD; "ADMIN" -> Page.ADMIN_PANEL; else -> Page.HOME }
+                                }
+                                modal.hide()
                                 null
                             }
-                            userRole.value = role; appState.value = when (role) { "DANCER" -> Page.DANCER_DASHBOARD; "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD; "ADMIN" -> Page.ADMIN_PANEL; else -> Page.HOME }
-                            modal.hide()
                         }
                         null
                     }.catch<dynamic> {
@@ -1029,8 +1038,7 @@ class App : Application() {
         }
     }
 
-    // ==========================================
-    // ZMODYFIKOWANY PANEL ADMINA
+    // --- ZMODYFIKOWANY PANEL ADMINA
     // ==========================================
     private fun Container.buildAdminPanel() {
         div(className = "container py-5 mt-5") {
@@ -1461,7 +1469,7 @@ class App : Application() {
                                                                     if (window.confirm(I18n.tr("Usunąć to nagranie?", "Delete this recording?"))) {
                                                                         ApiService.deleteSubmissionAPI(subId).then<dynamic> {
                                                                             showToast(I18n.tr("✔ Usunięto.", "✔ Deleted."))
-                                                                            subs.removeAll { it.id?.toString()?.toIntOrNull() == subId }
+                                                                            subs.removeAll { (it.id as? Int) == subId }
                                                                             null
                                                                         }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
                                                                     }
@@ -1510,7 +1518,7 @@ class App : Application() {
                                                                     if (window.confirm(I18n.tr("Usunąć to nagranie?", "Delete this recording?"))) {
                                                                         ApiService.deleteSubmissionAPI(subId).then<dynamic> {
                                                                             showToast(I18n.tr("✔ Usunięto.", "✔ Deleted."))
-                                                                            subs.removeAll { it.id?.toString()?.toIntOrNull() == subId }
+                                                                            subs.removeAll { (it.id as? Int) == subId }
                                                                             null
                                                                         }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
                                                                     }
@@ -1587,28 +1595,43 @@ class App : Application() {
                                         } else {
                                             div(className = "d-flex justify-content-between align-items-start") {
                                                 div {
-                                                    span(formatTime(sec), className = "badge bg-secondary me-2")
-                                                    span(originalContent, className = "text-light")
-                                                }
-                                                div(className = "d-flex gap-2 ms-2") {
-                                                    tag(TAG.BUTTON, className = "btn btn-sm btn-outline-info border-0") {
-                                                        tag(TAG.I, className = "fa-solid fa-pen")
-                                                        onClick { isEditing.value = true }
-                                                    }
-                                                    tag(TAG.BUTTON, className = "btn btn-sm btn-outline-danger border-0") {
-                                                        tag(TAG.I, className = "fa-solid fa-trash")
+                                                    span(formatTime(sec), className = "badge bg-primary-dance me-2 font-monospace") {
+                                                        setStyle("cursor", "pointer")
+                                                        title = I18n.tr("Kliknij, aby przejść do tej sekundy", "Click to jump to this second")
                                                         onClick {
-                                                            if (window.confirm(I18n.tr("Usunąć ten komentarz?", "Delete this comment?"))) {
-                                                                ApiService.deleteCommentAPI(commentId).then<dynamic> {
-                                                                    showToast(I18n.tr("✔ Usunięto.", "✔ Deleted."))
-                                                                    loadComments()
+                                                            val v1 = document.getElementById("submission-player") as? HTMLVideoElement
+                                                            val v2 = document.getElementById("instruction-player") as? HTMLVideoElement
+
+                                                            v1?.currentTime = sec.toDouble()
+                                                            v2?.currentTime = sec.toDouble()
+
+                                                            v1?.play()
+                                                            v2?.play()
+                                                        }
+                                                    }
+                                                    small(I18n.tr("Choreograf", "Choreographer"), className = "text-muted")
+                                                }
+                                                // KOSZ TYLKO DLA CHOREOGRAFA I TYLKO KIEDY WŁAŚNIE OCENIA (!isGraded)
+                                                if (role == "CHOREOGRAPHER" && !PlayerState.isGraded && commentId != null) {
+                                                    tag(TAG.BUTTON, className = "btn btn-sm btn-outline-danger border-0 ms-2") {
+                                                        tag(TAG.I, className = "fa-solid fa-trash")
+                                                        setAttribute("title", I18n.tr("Usuń komentarz", "Delete comment"))
+                                                        onClick {
+                                                            if (window.confirm(I18n.tr("Czy na pewno chcesz usunąć ten komentarz?", "Are you sure you want to delete this comment?"))) {
+                                                                ApiService.deleteCommentAPI(commentId).then<dynamic> { _: dynamic ->
+                                                                    commentsList.removeAll { item: dynamic -> (item.id as? Int) == commentId }
+                                                                    showToast(I18n.tr("✔ Komentarz usunięty", "✔ Comment deleted"))
                                                                     null
-                                                                }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
+                                                                }.catch<dynamic> { _: Throwable ->
+                                                                    window.alert(I18n.tr("Błąd usuwania komentarza.", "Error deleting comment."))
+                                                                    null
+                                                                }
                                                             }
                                                         }
                                                     }
                                                 }
                                             }
+                                            p(c.content?.toString() ?: "", className = "mb-0 text-light small")
                                         }
                                     }
                                 }
@@ -1856,7 +1879,7 @@ class App : Application() {
 
         selectedRecipients.subscribe { loadMessages(it) }
 
-        div(className = "container py-5 mt-5 pt-5") {
+        div(className = "container py-5 mt-5 pt-4 px-4") {
             backButton(appState, backPage)
 
             h2(I18n.tr("Messenger Społeczności", "Community Messenger"), className = "fw-bold text-primary-dance mb-4")
@@ -1878,7 +1901,7 @@ class App : Application() {
                                             setStyle("cursor", "pointer")
                                             onClick { selectedRecipients.value = null }
 
-                                            span("🌍 " + I18n.tr("Czat Ogólny", "General Chat"), className = "fw-bold") {
+                                            span("🌍 " + I18n.tr("Czat Ogólny", "General"), className = "fw-bold") {
                                                 if (isSelected) setAttribute("style", "color: #000000 !important;")
                                                 else setAttribute("style", "color: #0dcaf0 !important;")
                                             }
@@ -2197,7 +2220,7 @@ class App : Application() {
                             tag(TAG.BUTTON, I18n.tr("Zapisz ocenę", "Save grade"), className = "btn dance-btn-primary w-100 fw-bold") {
                                 onClick {
                                     val scoreVal = scoreInput.getElement()?.asDynamic().value?.toString()?.toIntOrNull()
-                                    val feedbackVal = feedbackInput.getElement()?.asDynamic().value?.toString() ?: ""
+                                    val feedbackVal = feedbackInput.getElement()?.asDynamic()?.value?.toString() ?: ""
                                     if (scoreVal == null || scoreVal < 1 || scoreVal > 10) { window.alert(I18n.tr("Podaj ocenę 1-10!", "Provide a grade between 1-10!")); return@onClick }
                                     ApiService.gradeSubmission(subId, scoreVal, feedbackVal).then<dynamic> { _: dynamic ->
                                         gradeSuccess.value = true
@@ -2233,7 +2256,7 @@ class App : Application() {
 
                                 tag(TAG.BUTTON, I18n.tr("Dodaj komentarz do bieżącej sekundy", "Add comment at current second"), className = "btn dance-btn-primary btn-sm w-100 fw-bold") {
                                     onClick {
-                                        val content = commentInput.getElement()?.asDynamic().value?.toString() ?: ""
+                                        val content = commentInput.getElement()?.asDynamic()?.value?.toString() ?: ""
                                         if (content.isBlank()) { window.alert(I18n.tr("Wpisz treść komentarza!", "Enter comment content!")); return@onClick }
 
                                         val video = document.getElementById("submission-player") as? HTMLVideoElement
@@ -2241,7 +2264,7 @@ class App : Application() {
 
                                         ApiService.addComment(subId, myUserId, currentSec, content).then<dynamic> { res: dynamic ->
                                             comments.add(res)
-                                            commentInput.getElement()?.asDynamic().value = ""
+                                            commentInput.getElement()?.asDynamic()?.value = ""
                                             showToast(I18n.tr("✔ Komentarz dodany do ", "✔ Comment added at ") + "${formatTime(currentSec)}")
                                             null
                                         }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd dodawania komentarza.", "Error adding comment.")); null }
@@ -2275,24 +2298,27 @@ class App : Application() {
                                                                         setStyle("cursor", "pointer")
                                                                         title = I18n.tr("Kliknij, aby przejść do tej sekundy", "Click to jump to this second")
                                                                         onClick {
-                                                                            val video = document.getElementById("submission-player") as? HTMLVideoElement
-                                                                            if (video != null) {
-                                                                                video.currentTime = sec.toDouble()
-                                                                                video.play()
-                                                                            }
+                                                                            val v1 = document.getElementById("submission-player") as? HTMLVideoElement
+                                                                            val v2 = document.getElementById("instruction-player") as? HTMLVideoElement
+
+                                                                            v1?.currentTime = sec.toDouble()
+                                                                            v2?.currentTime = sec.toDouble()
+
+                                                                            v1?.play()
+                                                                            v2?.play()
                                                                         }
                                                                     }
                                                                     small(I18n.tr("Choreograf", "Choreographer"), className = "text-muted")
                                                                 }
                                                                 // KOSZ TYLKO DLA CHOREOGRAFA I TYLKO KIEDY WŁAŚNIE OCENIA (!isGraded)
-                                                                if (role == "CHOREOGRAPHER" && !isGraded && commentId != null) {
+                                                                if (role == "CHOREOGRAPHER" && !PlayerState.isGraded && commentId != null) {
                                                                     tag(TAG.BUTTON, className = "btn btn-sm btn-outline-danger border-0 ms-2") {
                                                                         tag(TAG.I, className = "fa-solid fa-trash")
                                                                         setAttribute("title", I18n.tr("Usuń komentarz", "Delete comment"))
                                                                         onClick {
                                                                             if (window.confirm(I18n.tr("Czy na pewno chcesz usunąć ten komentarz?", "Are you sure you want to delete this comment?"))) {
                                                                                 ApiService.deleteCommentAPI(commentId).then<dynamic> { _: dynamic ->
-                                                                                    comments.removeAll { it.id?.toString()?.toIntOrNull() == commentId }
+                                                                                    comments.removeAll { item: dynamic -> (item.id as? Int) == commentId }
                                                                                     showToast(I18n.tr("✔ Komentarz usunięty", "✔ Comment deleted"))
                                                                                     null
                                                                                 }.catch<dynamic> { _: Throwable ->
@@ -2319,9 +2345,44 @@ class App : Application() {
             }
         }
     }
+
+    private fun Container.buildBlockedView() {
+        div(className = "d-flex flex-column justify-content-center align-items-center w-100") {
+            setAttribute("style", "min-height: 70vh;")
+
+            div(className = "card bg-white p-5 text-center shadow-lg border-0") {
+                setAttribute("style", "max-width: 600px; border-radius: 20px;")
+
+                tag(TAG.I, className = "fa-solid fa-lock mb-3") {
+                    setAttribute("style", "font-size: 4em; color: #E87C9A;")
+                }
+
+                h2("Twoje konto zostało", className = "fw-normal text-dark mb-0")
+                h1("zablokowane :(", className = "fw-bold mb-4") {
+                    setAttribute("style", "color: #E87C9A;")
+                }
+
+                p("Możesz się zalogować, ale Twoje konto jest zablokowane i nie masz dostępu do żadnych funkcji aplikacji.", className = "text-muted mb-4")
+
+                div(className = "p-3 bg-light rounded-3 mb-4 w-100 text-dark d-flex align-items-center justify-content-center") {
+                    tag(TAG.I, className = "fa-solid fa-info-circle me-2") {
+                        setAttribute("style", "color: #E87C9A;")
+                    }
+                    span("W razie pomyłki lub pytań skontaktuj się z administratorem.", className = "small fw-bold")
+                }
+
+                tag(TAG.BUTTON, "Skontaktuj się z administratorem", className = "btn w-100 fw-bold border-0") {
+                    setAttribute("style", "background-color: #E87C9A; color: white; padding: 15px; border-radius: 10px;")
+                    onClick {
+                        appState.value = Page.CHAT
+                    }
+                }
+            }
+        }
+    }
 }
 
-fun toVideoUrl(path: String?): String {
+private fun toVideoUrl(path: String?): String {
     if (path.isNullOrBlank()) return ""
     if (path.startsWith("http")) return path
     val normalized = path.replace("\\", "/")
@@ -2351,3 +2412,4 @@ fun showToast(message: String) {
 fun main() {
     startApplication(::App, null, CoreModule, BootstrapModule, BootstrapCssModule, FontAwesomeModule, TomSelectModule)
 }
+
