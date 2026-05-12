@@ -531,7 +531,6 @@ class App : Application() {
                 }
                 tag(TAG.BUTTON, className = "btn dance-btn-primary rounded-end-3") {
                     setAttribute("type", "button")
-                    setAttribute("title", I18n.tr("Pokaż/Ukryj hasło", "Show/Hide password"))
                     val iconTag = tag(TAG.I, className = "fa-solid fa-eye-slash text-light")
                     onClick {
                         if (passwordInput?.type == io.kvision.html.InputType.PASSWORD) {
@@ -560,12 +559,11 @@ class App : Application() {
 
                     errorAlert.visible = false
 
-                    // NOWE, LEPSZE LOGOWANIE ODCZYTUJĄCE STATUS Z BACKENDU:
+                    // NOWA LOGIKA: Czytamy isActive bezpośrednio z odpowiedzi logowania
                     ApiService.login(email, pass).then<dynamic> { res: dynamic ->
                         val token = res.token?.toString()
                         val role = res.role?.toString()
-
-                        // Backend musi teraz zwracać res.isActive!
+                        // Backend przekazuje teraz isActive prosto z bazy
                         val isActive = res.isActive == true || res.active == true || res.isActive?.toString() == "true" || res.active?.toString() == "true"
 
                         if (token != null && role != null) {
@@ -573,6 +571,7 @@ class App : Application() {
                             window.localStorage.setItem("userRole", role)
                             window.localStorage.setItem("isActive", isActive.toString())
 
+                            // Jeśli w odpowiedzi jest ID, zapisz je (pomocne do czatu)
                             if (res.id != null) {
                                 window.localStorage.setItem("userId", res.id.toString())
                                 currentUserId.value = res.id.toString().toIntOrNull()
@@ -580,14 +579,14 @@ class App : Application() {
 
                             userRole.value = role
 
-                            // Jeśli jest zablokowany - wyrzucamy od razu na widok kłódki!
+                            // KRYTYCZNY MOMENT: Sprawdzamy status ZANIM ustawimy widok
                             if (!isActive) {
-                                appState.value = Page.BLOCKED
+                                appState.value = Page.BLOCKED // Przekierowanie do widoku kłódki
                             } else {
                                 appState.value = when (role) {
-                                    "DANCER" -> Page.DANCER_DASHBOARD;
-                                    "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD;
-                                    "ADMIN" -> Page.ADMIN_PANEL;
+                                    "DANCER" -> Page.DANCER_DASHBOARD
+                                    "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
+                                    "ADMIN" -> Page.ADMIN_PANEL
                                     else -> Page.HOME
                                 }
                             }
