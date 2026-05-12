@@ -320,11 +320,16 @@ class App : Application() {
                                     li(className = "mb-2") {
                                         link(I18n.tr("Przejdź do Panelu", "Go to Dashboard"), "javascript:void(0)", className = "text-muted text-decoration-none") {
                                             onClick {
-                                                appState.value = when (role) {
-                                                    "DANCER" -> Page.DANCER_DASHBOARD
-                                                    "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
-                                                    "ADMIN" -> Page.ADMIN_PANEL
-                                                    else -> Page.HOME
+                                                val isBlocked = window.localStorage.getItem("isActive") == "false"
+                                                appState.value = if (isBlocked) {
+                                                    Page.BLOCKED
+                                                } else {
+                                                    when (role) {
+                                                        "DANCER" -> Page.DANCER_DASHBOARD
+                                                        "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
+                                                        "ADMIN" -> Page.ADMIN_PANEL
+                                                        else -> Page.HOME
+                                                    }
                                                 }
                                             }
                                         }
@@ -566,6 +571,9 @@ class App : Application() {
                                 val isActive = found?.isActive == true || found?.active == true || found?.isActive?.toString() == "true" || found?.active?.toString() == "true"
 
                                 if (userId != null) { window.localStorage.setItem("userId", userId.toString()); currentUserId.value = userId }
+
+                                // Zapisz status aktywności do localStorage
+                                window.localStorage.setItem("isActive", isActive.toString())
 
                                 userRole.value = role
                                 if (!isActive) {
