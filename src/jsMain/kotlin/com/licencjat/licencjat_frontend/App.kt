@@ -89,6 +89,12 @@ class App : Application() {
         if (savedToken != null && savedRole != null) {
             userRole.value = savedRole
             currentUserId.value = savedId
+            // POPRAWKA: Po odświeżeniu strony zablokowany użytkownik musi wrócić na Page.BLOCKED,
+            // a nie na HOME. Bez tego użytkownik mógł obejść blokadę przez F5.
+            val isActive = window.localStorage.getItem("isActive") != "false"
+            if (!isActive) {
+                appState.value = Page.BLOCKED
+            }
         }
 
         // --- NAPRAWA STYLÓW DLA MODALI, FORMULARZY I CZATU ---
@@ -240,11 +246,17 @@ class App : Application() {
                             div(className = "navbar-nav") {
                                 link(I18n.tr("Mój Panel", "My Dashboard"), "javascript:void(0)", className = "nav-link px-3 text-light fw-medium") {
                                     onClick {
-                                        appState.value = when (role) {
-                                            "DANCER" -> Page.DANCER_DASHBOARD
-                                            "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
-                                            "ADMIN" -> Page.ADMIN_PANEL
-                                            else -> Page.HOME
+                                        // POPRAWKA: Zablokowany użytkownik nie może przejść do panelu z navbaru.
+                                        val isBlocked = window.localStorage.getItem("isActive") == "false"
+                                        appState.value = if (isBlocked) {
+                                            Page.BLOCKED
+                                        } else {
+                                            when (role) {
+                                                "DANCER" -> Page.DANCER_DASHBOARD
+                                                "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
+                                                "ADMIN" -> Page.ADMIN_PANEL
+                                                else -> Page.HOME
+                                            }
                                         }
                                     }
                                 }
@@ -564,7 +576,10 @@ class App : Application() {
                         val token = res.token?.toString()
                         val role = res.role?.toString()
                         // Backend przekazuje teraz isActive prosto z bazy
-                        val isActive = res.isActive == true || res.active == true || res.isActive?.toString() == "true" || res.active?.toString() == "true"
+                        // POPRAWKA: Jedna pewna ścieżka. Backend zwraca pole "isActive" (Boolean w JSON).
+                        // Poprzedni łańcuch warunków (|| res.active == true || ...) mógł dawać nieoczekiwane true.
+                        // Domyślnie false (fail-safe): brak pola → traktujemy jako zablokowany.
+                        val isActive = res.isActive?.toString() == "true"
 
                         if (token != null && role != null) {
                             window.localStorage.setItem("jwt", token)
@@ -2427,4 +2442,3 @@ fun showToast(message: String) {
 fun main() {
     startApplication(::App, null, CoreModule, BootstrapModule, BootstrapCssModule, FontAwesomeModule, TomSelectModule)
 }
-
