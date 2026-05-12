@@ -560,30 +560,38 @@ class App : Application() {
 
                     errorAlert.visible = false
 
+                    // NOWE, LEPSZE LOGOWANIE ODCZYTUJĄCE STATUS Z BACKENDU:
                     ApiService.login(email, pass).then<dynamic> { res: dynamic ->
-                        val token = res.token?.toString(); val role = res.role?.toString()
+                        val token = res.token?.toString()
+                        val role = res.role?.toString()
+
+                        // Backend musi teraz zwracać res.isActive!
+                        val isActive = res.isActive == true || res.active == true || res.isActive?.toString() == "true" || res.active?.toString() == "true"
+
                         if (token != null && role != null) {
-                            window.localStorage.setItem("jwt", token); window.localStorage.setItem("userRole", role)
-                            ApiService.fetchUsersWithToken(token).then<dynamic> { users: dynamic ->
-                                val list = users as Array<dynamic>
-                                val found = list.find { it.email?.toString() == email }
-                                val userId = found?.id?.toString()?.toIntOrNull()
-                                val isActive = found?.isActive == true || found?.active == true || found?.isActive?.toString() == "true" || found?.active?.toString() == "true"
+                            window.localStorage.setItem("jwt", token)
+                            window.localStorage.setItem("userRole", role)
+                            window.localStorage.setItem("isActive", isActive.toString())
 
-                                if (userId != null) { window.localStorage.setItem("userId", userId.toString()); currentUserId.value = userId }
-
-                                // Zapisz status aktywności do localStorage
-                                window.localStorage.setItem("isActive", isActive.toString())
-
-                                userRole.value = role
-                                if (!isActive) {
-                                    appState.value = Page.BLOCKED
-                                } else {
-                                    appState.value = when (role) { "DANCER" -> Page.DANCER_DASHBOARD; "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD; "ADMIN" -> Page.ADMIN_PANEL; else -> Page.HOME }
-                                }
-                                modal.hide()
-                                null
+                            if (res.id != null) {
+                                window.localStorage.setItem("userId", res.id.toString())
+                                currentUserId.value = res.id.toString().toIntOrNull()
                             }
+
+                            userRole.value = role
+
+                            // Jeśli jest zablokowany - wyrzucamy od razu na widok kłódki!
+                            if (!isActive) {
+                                appState.value = Page.BLOCKED
+                            } else {
+                                appState.value = when (role) {
+                                    "DANCER" -> Page.DANCER_DASHBOARD;
+                                    "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD;
+                                    "ADMIN" -> Page.ADMIN_PANEL;
+                                    else -> Page.HOME
+                                }
+                            }
+                            modal.hide()
                         }
                         null
                     }.catch<dynamic> {
