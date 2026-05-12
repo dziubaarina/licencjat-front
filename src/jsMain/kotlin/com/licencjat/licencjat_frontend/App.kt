@@ -585,29 +585,31 @@ class App : Application() {
                             else -> false
                         }
 
-                        if (token != null && role != null) {
-                            window.localStorage.setItem("jwt", token)
-                            window.localStorage.setItem("userRole", role)
-                            window.localStorage.setItem("isActive", isActive.toString())
+                        val validRole = role != null && role != "INVALID_CREDENTIALS" && role != "SERVER_ERROR"
 
-                            // Jeśli w odpowiedzi jest ID, zapisz je (pomocne do czatu)
+                        if (!isActive && validRole) {
+                            // ZABLOKOWANE KONTO: token może być pusty, ale znamy rolę.
+                            // Zapisujemy rolę i status, NIE zapisujemy tokena.
+                            window.localStorage.setItem("userRole", role!!)
+                            window.localStorage.setItem("isActive", "false")
+                            userRole.value = role
+                            appState.value = Page.BLOCKED
+                            modal.hide()
+                        } else if (token != null && token.isNotBlank() && validRole) {
+                            // AKTYWNE KONTO: zapisujemy wszystko normalnie.
+                            window.localStorage.setItem("jwt", token)
+                            window.localStorage.setItem("userRole", role!!)
+                            window.localStorage.setItem("isActive", "true")
                             if (res.id != null) {
                                 window.localStorage.setItem("userId", res.id.toString())
                                 currentUserId.value = res.id.toString().toIntOrNull()
                             }
-
                             userRole.value = role
-
-                            // KRYTYCZNY MOMENT: Sprawdzamy status ZANIM ustawimy widok
-                            if (!isActive) {
-                                appState.value = Page.BLOCKED // Przekierowanie do widoku kłódki
-                            } else {
-                                appState.value = when (role) {
-                                    "DANCER" -> Page.DANCER_DASHBOARD
-                                    "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
-                                    "ADMIN" -> Page.ADMIN_PANEL
-                                    else -> Page.HOME
-                                }
+                            appState.value = when (role) {
+                                "DANCER" -> Page.DANCER_DASHBOARD
+                                "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
+                                "ADMIN" -> Page.ADMIN_PANEL
+                                else -> Page.HOME
                             }
                             modal.hide()
                         }
@@ -2431,7 +2433,6 @@ fun formatTime(seconds: Int): String {
     val ss = if (s < 10) "0$s" else "$s"
     return "$mm:$ss"
 }
-
 
 fun showToast(message: String) {
     val toast = document.createElement("div")
