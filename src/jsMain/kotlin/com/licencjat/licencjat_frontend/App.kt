@@ -575,11 +575,15 @@ class App : Application() {
                     ApiService.login(email, pass).then<dynamic> { res: dynamic ->
                         val token = res.token?.toString()
                         val role = res.role?.toString()
-                        // Backend przekazuje teraz isActive prosto z bazy
-                        // POPRAWKA: Jedna pewna ścieżka. Backend zwraca pole "isActive" (Boolean w JSON).
-                        // Poprzedni łańcuch warunków (|| res.active == true || ...) mógł dawać nieoczekiwane true.
-                        // Domyślnie false (fail-safe): brak pola → traktujemy jako zablokowany.
-                        val isActive = res.isActive?.toString() == "true"
+                        // POPRAWKA: Jackson odcina prefix "is" z Boolean → pole leci jako "active".
+                        // Po dodaniu @JsonProperty("isActive") w AuthResponse leci jako "isActive".
+                        // Czytamy OBA pola: priorytet "isActive" (po naprawie), fallback "active".
+                        val isActive = when {
+                            res.isActive?.toString() == "true"  -> true
+                            res.isActive?.toString() == "false" -> false
+                            res.active?.toString()   == "true"  -> true
+                            else -> false
+                        }
 
                         if (token != null && role != null) {
                             window.localStorage.setItem("jwt", token)
@@ -2427,6 +2431,7 @@ fun formatTime(seconds: Int): String {
     val ss = if (s < 10) "0$s" else "$s"
     return "$mm:$ss"
 }
+
 
 fun showToast(message: String) {
     val toast = document.createElement("div")
