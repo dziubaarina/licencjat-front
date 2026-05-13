@@ -2418,7 +2418,7 @@ class App : Application() {
     }
 }
 
-private fun toVideoUrl(path: String?): String {
+fun toVideoUrl(path: String?): String {
     if (path.isNullOrBlank()) return ""
     if (path.startsWith("http")) return path
     val normalized = path.replace("\\", "/")
