@@ -5,3 +5,4 @@ out/
 *.iws
 *.idea
 render-config.env
+github-config.env
