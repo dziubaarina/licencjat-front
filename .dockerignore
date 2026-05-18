@@ -1,0 +1,7 @@
+.git
+.gradle
+build
+.idea
+.kotlin
+.kotlin-js-store
+node_modules
