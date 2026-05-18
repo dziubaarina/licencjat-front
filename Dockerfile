@@ -4,6 +4,6 @@ COPY . .
 RUN gradle jsBrowserProductionWebpack --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=512m"
 
 FROM nginx:stable-alpine
-COPY --from=build /app/build/dist/js/productionExecutable /usr/share/nginx/html
+COPY --from=build /app/build/distributions /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
