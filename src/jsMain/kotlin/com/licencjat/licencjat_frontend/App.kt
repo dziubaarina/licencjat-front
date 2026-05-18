@@ -81,6 +81,19 @@ class App : Application() {
     private var loginModal: Modal? = null
     private var registerModal: Modal? = null
 
+    // Pomocnicza funkcja do czytania pola aktywności z odpowiedzi backendu.
+    // Backend czasami wysyła pole jako `active`, a czasami jako `isActive` (np. Jackson zmienia nazwę).
+    // Funkcja przyjmuje obiekt dynamiczny i zwraca Boolean: true jeśli użytkownik jest aktywny.
+    private fun parseActiveFlag(obj: dynamic): Boolean {
+        return when {
+            obj == null -> false
+            obj.isActive == true -> true
+            obj.active == true -> true
+            obj.isActive?.toString() == "true" -> true
+            obj.active?.toString() == "true" -> true
+            else -> false
+        }
+    }
     override fun start() {
         AccessibilityBar.init()
         val savedToken = window.localStorage.getItem("jwt")
@@ -577,13 +590,8 @@ class App : Application() {
                         val role = res.role?.toString()
                         // POPRAWKA: Jackson odcina prefix "is" z Boolean → pole leci jako "active".
                         // Po dodaniu @JsonProperty("isActive") w AuthResponse leci jako "isActive".
-                        // Czytamy OBA pola: priorytet "isActive" (po naprawie), fallback "active".
-                        val isActive = when {
-                            res.isActive?.toString() == "true"  -> true
-                            res.isActive?.toString() == "false" -> false
-                            res.active?.toString()   == "true"  -> true
-                            else -> false
-                        }
+                        // Użyjemy pomocniczej funkcji, która czyta zarówno `isActive`, jak i `active`.
+                        val isActive = parseActiveFlag(res)
 
                         val validRole = role != null && role != "INVALID_CREDENTIALS" && role != "SERVER_ERROR"
 
@@ -1167,7 +1175,7 @@ class App : Application() {
                                             list.forEach { u ->
                                                 tr {
                                                     val userId = u.id?.toString()?.toIntOrNull() ?: 0
-                                                    val active = u.isActive == true || u.active == true || u.isActive?.toString() == "true" || u.active?.toString() == "true"
+                                                    val active = parseActiveFlag(u)
                                                     val role = u.role?.toString() ?: "—"
 
                                                     td(u.id?.toString() ?: "—")
