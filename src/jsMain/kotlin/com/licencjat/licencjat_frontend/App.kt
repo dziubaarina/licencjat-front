@@ -1911,7 +1911,11 @@ class App : Application() {
         val backPage = when (role) {
             "ADMIN" -> Page.ADMIN_PANEL
             "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
-            "DANCER" -> Page.DANCER_DASHBOARD
+            "DANCER" -> {
+                val isBlocked = window.localStorage.getItem("isActive") == "false"
+                if (isBlocked) Page.BLOCKED else Page.DANCER_DASHBOARD
+            }
+
             else -> Page.HOME
         }
 
