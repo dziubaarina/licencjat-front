@@ -1,0 +1,31 @@
+{
+  "name": "licencjat_frontend",
+  "version": "1.0.0-SNAPSHOT",
+  "main": "licencjat_frontend.mjs",
+  "devDependencies": {
+    "webpack": "5.101.3",
+    "webpack-cli": "6.0.1",
+    "kotlin-web-helpers": "3.0.0",
+    "source-map-loader": "5.0.0",
+    "webpack-dev-server": "5.2.2"
+  },
+  "dependencies": {
+    "zzz-kvision-assets": "9.0.0",
+    "css-loader": "7.1.4",
+    "style-loader": "4.0.0",
+    "fecha": "4.2.3",
+    "snabbdom": "3.6.3",
+    "@appcues/snabbdom-virtualize": "1.1.0",
+    "split.js": "1.6.5",
+    "gettext.js": "2.0.3",
+    "gettext-extract": "2.0.1",
+    "@popperjs/core": "2.11.8",
+    "bootstrap": "5.3.8",
+    "toastify-js": "1.12.0",
+    "@fortawesome/fontawesome-free": "7.2.0",
+    "tom-select": "2.5.1"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

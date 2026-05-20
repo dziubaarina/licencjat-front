@@ -1,0 +1,340 @@
+body {
+    margin: 0;
+    background-color: #121212;
+    color: #f5f5f5;
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+}
+
+.hero-section {
+    background-color: #000;
+}
+
+.hero-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translateX(-50%) translateY(-50%);
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.55;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shadow-text { text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8); }
+
+.steezy-hero-title {
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 3.5rem;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+}
+
+.steezy-hero-subtitle {
+    color: #cccccc;
+    font-size: 1.2rem;
+    font-weight: 400;
+}
+
+@media (max-width: 768px) {
+    .steezy-hero-title { font-size: 2.2rem; }
+}
+
+.dance-btn-primary {
+    background-color: #a893ff !important;
+    color: #ffffff !important;
+    border-radius: 4px;
+    border: none;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+
+.dance-btn-primary:hover {
+    background-color: #ff9eef !important;
+    color: #000000 !important;
+    transform: translateY(-2px);
+}
+
+.hover-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+}
+
+.hover-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+.text-primary-dance { color: #a893ff !important; }
+.bg-primary-dance { background-color: #a893ff !important; }
+
+/* Tryb ciemny dla paneli wewnętrznych */
+.border-secondary { border-color: #333 !important; }
+.bg-dark { background-color: #1a1a1a !important; }
+
+.hover-icon {
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.hover-icon:hover { color: #a893ff !important; }
+
+/* Okienko Modal (Logowanie) w trybie ciemnym */
+.modal-content {
+    background-color: #1a1a1a;
+    color: #f5f5f5;
+    border: 1px solid #333;
+}
+.modal-header { border-bottom: 1px solid #333; }
+.modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+.form-control-lg { border-radius: 8px; }
+.form-control:focus {
+    border-color: #a893ff;
+    box-shadow: 0 0 0 0.25rem rgba(168, 147, 255, 0.25);
+}
+
+/* ========================================= */
+/* --- DARK MODE DLA TOM SELECT (PIGUŁKI) --- */
+/* ========================================= */
+
+.ts-control, .ts-wrapper.single .ts-control {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border: 1px solid #333 !important;
+    border-radius: 0.375rem;
+    padding: 10px !important;
+}
+
+.ts-dropdown {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border: 1px solid #333 !important;
+}
+
+.ts-dropdown .option {
+    color: #ffffff;
+}
+
+.ts-dropdown .option.active, .ts-dropdown .option:hover {
+    background-color: #a893ff !important;
+    color: #000000 !important;
+}
+
+/* Wygląd pojedynczego Taga (Pigułki) po wybraniu */
+.ts-control .item {
+    background-color: #a893ff !important;
+    color: #000000 !important;
+    border-radius: 4px;
+    padding: 2px 8px !important;
+    font-weight: 500;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* --- KRZYŻYKI (X) DO USUWANIA TAGÓW --- */
+.ts-control .item .remove {
+    color: #000000 !important;
+    margin-left: 8px !important;
+    padding-left: 8px !important;
+    border-left: 1px solid rgba(0, 0, 0, 0.3) !important;
+    text-decoration: none !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+}
+
+.ts-control .item .remove:hover {
+    color: #ff0000 !important;
+}
+/* =============================== */
+/* --- WŁASNY MULTI-SELECT      --- */
+/* =============================== */
+
+.dancer-tags-box {
+    min-height: 44px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.dancer-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #a893ff;
+    color: #000;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-weight: 500;
+    font-size: 0.88rem;
+    gap: 4px;
+}
+
+.dancer-tag-remove {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    padding-left: 4px;
+    border-left: 1px solid rgba(0,0,0,0.3);
+    margin-left: 2px;
+    color: #000;
+    transition: color 0.15s;
+}
+
+.dancer-tag-remove:hover {
+    color: #cc0000;
+}
+
+.dancer-dropdown {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+}
+
+.dancer-option {
+    padding: 10px 14px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.95rem;
+}
+
+.dancer-option:hover {
+    background: #a893ff;
+    color: #000;
+}
+
+.dancer-option-all {
+    font-weight: 600;
+    border-bottom: 1px solid #333;
+}
+/* =============================== */
+/* --- WŁASNY MULTI-SELECT      --- */
+/* =============================== */
+
+.dancer-tags-box {
+    min-height: 44px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s;
+}
+.dancer-tags-box:hover { border-color: #a893ff; }
+.dancer-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #a893ff;
+    color: #000;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-weight: 500;
+    font-size: 0.88rem;
+    gap: 4px;
+    cursor: default;
+}
+.dancer-tag-remove {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    padding-left: 4px;
+    border-left: 1px solid rgba(0,0,0,0.3);
+    margin-left: 2px;
+    color: #000;
+    transition: color 0.15s;
+}
+.dancer-tag-remove:hover { color: #cc0000; }
+.dancer-dropdown {
+    background: #1a1a1a;
+    border: 1px solid #a893ff;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+}
+.dancer-option {
+    padding: 10px 14px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.95rem;
+}
+.dancer-option:hover { background: #a893ff; color: #000; }
+.dancer-option-all { font-weight: 600; border-bottom: 1px solid #333; }
+
+/* =============================== */
+/* --- TOAST POWIADOMIENIE      --- */
+/* =============================== */
+
+.dance-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: #a893ff;
+    color: #000;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border-radius: 50px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    white-space: nowrap;
+}
+
+.dance-toast-hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+}
+/* =============================== */
+/* --- TOAST POWIADOMIENIE      --- */
+/* =============================== */
+
+.dance-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: #a893ff;
+    color: #000;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 14px 28px;
+    border-radius: 50px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    white-space: nowrap;
+}
+
+.dance-toast-hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+}

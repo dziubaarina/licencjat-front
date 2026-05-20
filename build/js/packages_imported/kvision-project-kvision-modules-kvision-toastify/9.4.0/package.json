@@ -1,0 +1,21 @@
+{
+  "name": "kvision-project-kvision-modules-kvision-toastify",
+  "version": "9.4.0",
+  "main": "kvision-project-kvision-modules-kvision-toastify.mjs",
+  "devDependencies": {},
+  "dependencies": {
+    "toastify-js": "1.12.0",
+    "zzz-kvision-assets": "9.0.0",
+    "css-loader": "7.1.4",
+    "style-loader": "4.0.0",
+    "fecha": "4.2.3",
+    "snabbdom": "3.6.3",
+    "@appcues/snabbdom-virtualize": "1.1.0",
+    "split.js": "1.6.5",
+    "gettext.js": "2.0.3",
+    "gettext-extract": "2.0.1"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}

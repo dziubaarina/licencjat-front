@@ -596,10 +596,16 @@ class App : Application() {
                         val validRole = role != null && role != "INVALID_CREDENTIALS" && role != "SERVER_ERROR"
 
                         if (!isActive && validRole) {
-                            // ZABLOKOWANE KONTO: token może być pusty, ale znamy rolę.
-                            // Zapisujemy rolę i status, NIE zapisujemy tokena.
+                            // ZABLOKOWANE KONTO: Zapisujemy token aby użytkownik mógł wysłać wiadomość do admina
+                            if (token != null && token.isNotBlank()) {
+                                window.localStorage.setItem("jwt", token)
+                            }
                             window.localStorage.setItem("userRole", role!!)
                             window.localStorage.setItem("isActive", "false")
+                            if (res.id != null) {
+                                window.localStorage.setItem("userId", res.id.toString())
+                                currentUserId.value = res.id.toString().toIntOrNull()
+                            }
                             userRole.value = role
                             appState.value = Page.BLOCKED
                             modal.hide()
@@ -1882,11 +1888,12 @@ class App : Application() {
     private fun Container.buildChatView() {
         val messages = io.kvision.state.ObservableListWrapper<dynamic>()
         val selectedRecipients = ObservableValue<List<Int>?>(null)
+        val isBlocked = window.localStorage.getItem("isActive") == "false"
 
         fun loadMessages(recipients: List<Int>?) {
             if (recipients != null && recipients.size > 1) {
                 messages.clear()
-                return
+                return // Group messages not implemented yet
             }
 
             val recipientId = recipients?.firstOrNull()
@@ -1901,6 +1908,13 @@ class App : Application() {
             ApiService.fetchUsers().then<dynamic> { res ->
                 DataManager.allUsers.clear()
                 DataManager.allUsers.addAll(res as Array<dynamic>)
+                if (isBlocked) {
+                    val admin = (res as Array<dynamic>).find { it.role == "ADMIN" }
+                    val adminId = admin?.id?.toString()?.toIntOrNull()
+                    if (adminId != null) {
+                        selectedRecipients.value = listOf(adminId)
+                    }
+                }
                 null
             }.catch<dynamic> { _: Throwable -> null }
         }
@@ -1908,21 +1922,23 @@ class App : Application() {
         loadUsers()
 
         val role = window.localStorage.getItem("userRole") ?: ""
-        val backPage = when (role) {
-            "ADMIN" -> Page.ADMIN_PANEL
-            "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
-            "DANCER" -> {
-                val isBlocked = window.localStorage.getItem("isActive") == "false"
-                if (isBlocked) Page.BLOCKED else Page.DANCER_DASHBOARD
+        val backPage = if (isBlocked) {
+            Page.BLOCKED
+        } else {
+            when (role) {
+                "ADMIN" -> Page.ADMIN_PANEL
+                "CHOREOGRAPHER" -> Page.CHOREO_DASHBOARD
+                "DANCER" -> Page.DANCER_DASHBOARD
+                else -> Page.HOME
             }
-
-            else -> Page.HOME
         }
 
-        if (role == "ADMIN") {
-            selectedRecipients.value = null
-        } else {
-            selectedRecipients.value = emptyList()
+        if (!isBlocked) {
+            if (role == "ADMIN") {
+                selectedRecipients.value = null
+            } else {
+                selectedRecipients.value = emptyList()
+            }
         }
 
         selectedRecipients.subscribe { loadMessages(it) }
@@ -1933,78 +1949,82 @@ class App : Application() {
             h2(I18n.tr("Messenger Społeczności", "Community Messenger"), className = "fw-bold text-primary-dance mb-4")
 
             div(className = "row g-3") {
-                div(className = "col-md-4") {
-                    div(className = "card bg-dark border-secondary p-3 h-100") {
-                        h5(I18n.tr("Kontakty", "Contacts"), className = "text-white mb-3")
-                        div(className = "contacts-list pe-2") {
-                            height = 50.vh
-                            setStyle("overflow-y", "auto")
+                if (!isBlocked) {
+                    div(className = "col-md-4") {
+                        div(className = "card bg-dark border-secondary p-3 h-100") {
+                            h5(I18n.tr("Kontakty", "Contacts"), className = "text-white mb-3")
+                            div(className = "contacts-list pe-2") {
+                                height = 50.vh
+                                setStyle("overflow-y", "auto")
 
-                            bind(DataManager.allUsers) { list ->
-                                bind(selectedRecipients) { sel ->
+                                bind(DataManager.allUsers) { list ->
+                                    bind(selectedRecipients) { sel ->
 
-                                    if (role == "ADMIN") {
-                                        val isSelected = sel == null
-                                        div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
-                                            setStyle("cursor", "pointer")
-                                            onClick { selectedRecipients.value = null }
-
-                                            span("🌍 " + I18n.tr("Czat Ogólny", "General"), className = "fw-bold") {
-                                                if (isSelected) setAttribute("style", "color: #000000 !important;")
-                                                else setAttribute("style", "color: #0dcaf0 !important;")
-                                            }
-                                        }
-                                    }
-
-                                    if (sel != null && sel.size > 1) {
-                                        div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded bg-primary-dance") {
-                                            span("👥 Nowa Wiadomość (${sel.size} os.)", className = "fw-bold text-dark") {
-                                                setAttribute("style", "color: #000000 !important;")
-                                            }
-                                        }
-                                    }
-
-                                    if (list.isEmpty()) {
-                                        p("Brak użytkowników...", className = "text-muted small")
-                                    }
-
-                                    list.forEach { u ->
-                                        val uid = u.id?.toString()?.toIntOrNull() ?: 0
-                                        val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
-
-                                        if (uid != currentUserId) {
-                                            val isSelected = sel != null && sel.size == 1 && sel.contains(uid)
+                                        if (role == "ADMIN") {
+                                            val isSelected = sel == null
                                             div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
                                                 setStyle("cursor", "pointer")
-                                                onClick { selectedRecipients.value = listOf(uid) }
+                                                onClick { selectedRecipients.value = null }
 
-                                                span("${u.firstName} ${u.lastName}", className = "fw-bold") {
+                                                span("🌍 " + I18n.tr("Czat Ogólny", "General"), className = "fw-bold") {
                                                     if (isSelected) setAttribute("style", "color: #000000 !important;")
-                                                    else setAttribute("style", "color: #f5f5f5 !important;")
+                                                    else setAttribute("style", "color: #0dcaf0 !important;")
                                                 }
+                                            }
+                                        }
 
-                                                val uRole = u.role?.toString() ?: ""
-                                                val badgeClass = when(uRole) { "ADMIN" -> "bg-danger"; "CHOREOGRAPHER" -> "bg-info text-dark"; else -> "bg-secondary" }
-                                                span(uRole, className = "badge $badgeClass small")
+                                        if (sel != null && sel.size > 1) {
+                                            div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded bg-primary-dance") {
+                                                span("👥 Nowa Wiadomość (${sel.size} os.)", className = "fw-bold text-dark") {
+                                                    setAttribute("style", "color: #000000 !important;")
+                                                }
+                                            }
+                                        }
+
+                                        if (list.isEmpty()) {
+                                            p("Brak użytkowników...", className = "text-muted small")
+                                        }
+
+                                        list.forEach { u ->
+                                            val uid = u.id?.toString()?.toIntOrNull() ?: 0
+                                            val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
+
+                                            if (uid != currentUserId) {
+                                                val isSelected = sel != null && sel.size == 1 && sel.contains(uid)
+                                                div(className = "d-flex align-items-center justify-content-between mb-2 p-2 rounded hover-card " + if (isSelected) "bg-primary-dance" else "bg-black border border-secondary") {
+                                                    setStyle("cursor", "pointer")
+                                                    onClick { selectedRecipients.value = listOf(uid) }
+
+                                                    span("${u.firstName} ${u.lastName}", className = "fw-bold") {
+                                                        if (isSelected) setAttribute("style", "color: #000000 !important;")
+                                                        else setAttribute("style", "color: #f5f5f5 !important;")
+                                                    }
+
+                                                    val uRole = u.role?.toString() ?: ""
+                                                    val badgeClass = when(uRole) { "ADMIN" -> "bg-danger"; "CHOREOGRAPHER" -> "bg-info text-dark"; else -> "bg-secondary" }
+                                                    span(uRole, className = "badge $badgeClass small")
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                        if (role == "ADMIN") {
-                            tag(TAG.BUTTON, I18n.tr("Stwórz Grupę", "Create Group"), className = "btn btn-outline-info w-100 mt-3 btn-sm fw-bold") {
-                                onClick { showCreateGroupModal(DataManager.allUsers.toList(), selectedRecipients) }
+                            if (role == "ADMIN") {
+                                tag(TAG.BUTTON, I18n.tr("Stwórz Grupę", "Create Group"), className = "btn btn-outline-info w-100 mt-3 btn-sm fw-bold") {
+                                    onClick { showCreateGroupModal(DataManager.allUsers.toList(), selectedRecipients) }
+                                }
                             }
                         }
                     }
                 }
 
-                div(className = "col-md-8") {
+                div(className = if (isBlocked) "col-md-12" else "col-md-8") {
                     div(className = "card bg-dark border-secondary p-3 h-100") {
                         div(className = "chat-header border-bottom border-secondary pb-2 mb-3") {
                             bind(selectedRecipients) { sel ->
-                                val txt = if (sel == null) {
+                                val txt = if (isBlocked) {
+                                    I18n.tr("Kontakt z Administratorem", "Contact Administrator")
+                                } else if (sel == null) {
                                     I18n.tr("Do wszystkich (Czat Ogólny)", "To everyone (General)")
                                 } else if (sel.size > 1) {
                                     I18n.tr("Wysyłanie do wybranych ", "Sending to ") + "${sel.size}" + I18n.tr(" osób", " people")
@@ -2025,13 +2045,17 @@ class App : Application() {
                                 bind(selectedRecipients) { sel ->
                                     val currentUserId = window.localStorage.getItem("userId")?.toIntOrNull() ?: -1
 
-                                    if (sel != null && sel.isEmpty() && role != "ADMIN") {
+                                    if (!isBlocked && sel != null && sel.isEmpty() && role != "ADMIN") {
                                         div(className = "d-flex h-100 justify-content-center align-items-center") {
                                             p(I18n.tr("Wybierz osobę z listy po lewej stronie, aby rozpocząć rozmowę.", "Select a person from the left to start chatting."), className = "text-muted text-center")
                                         }
                                     } else if (sel != null && sel.size > 1) {
                                         div(className = "d-flex h-100 justify-content-center align-items-center") {
                                             p(I18n.tr("Napisz wiadomość na dole. Zostanie ona wysłana do wszystkich zaznaczonych osób.", "Write a message below. It will be sent to all selected people."), className = "text-muted text-center")
+                                        }
+                                    } else if (isBlocked && list.isEmpty()) {
+                                        div(className = "d-flex h-100 justify-content-center align-items-center") {
+                                            p(I18n.tr("Napisz wiadomość poniżej, aby skontaktować się z administratorem.", "Write a message below to contact the administrator."), className = "text-muted text-center")
                                         }
                                     } else if (list.isEmpty()) {
                                         p(I18n.tr("Brak wiadomości.", "No messages."), className = "text-muted text-center mt-3")
@@ -2107,8 +2131,12 @@ class App : Application() {
                                     val txt = mInput.value ?: ""
                                     if (txt.isNotBlank()) {
                                         val recs = selectedRecipients.value
-                                        if (role != "ADMIN" && (recs == null || recs.isEmpty())) {
+                                        if (!isBlocked && role != "ADMIN" && (recs == null || recs.isEmpty())) {
                                             window.alert(I18n.tr("Najpierw wybierz z kim chcesz pisać!", "Select who you want to chat with first!"))
+                                            return@onClick
+                                        }
+                                        if (isBlocked && (recs == null || recs.isEmpty())) {
+                                            window.alert(I18n.tr("Pobieranie danych administratora... poczekaj chwilę.", "Fetching admin data... please wait."))
                                             return@onClick
                                         }
 

@@ -1,0 +1,21 @@
+{
+  "name": "kvision-project-kvision-modules-kvision-tom-select",
+  "version": "9.4.0",
+  "main": "kvision-project-kvision-modules-kvision-tom-select.mjs",
+  "devDependencies": {},
+  "dependencies": {
+    "tom-select": "2.5.1",
+    "zzz-kvision-assets": "9.0.0",
+    "css-loader": "7.1.4",
+    "style-loader": "4.0.0",
+    "fecha": "4.2.3",
+    "snabbdom": "3.6.3",
+    "@appcues/snabbdom-virtualize": "1.1.0",
+    "split.js": "1.6.5",
+    "gettext.js": "2.0.3",
+    "gettext-extract": "2.0.1"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}
