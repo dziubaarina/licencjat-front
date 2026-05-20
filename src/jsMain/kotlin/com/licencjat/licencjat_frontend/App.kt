@@ -656,13 +656,32 @@ class App : Application() {
             label(I18n.tr("E-mail", "Email"), className = "form-label fw-bold mb-1")
             val emailInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "twoj@email.com" }
             label(I18n.tr("Hasło", "Password"), className = "form-label fw-bold mb-1")
-            val passInput = textInput(type = io.kvision.html.InputType.PASSWORD, className = "form-control login-input rounded-3 mb-4") { placeholder = "Wpisz hasło" }
+            var passInput: io.kvision.form.text.TextInput? = null
+
+            div(className = "input-group mb-4") {
+                passInput = textInput(type = io.kvision.html.InputType.PASSWORD, className = "form-control login-input rounded-start-3") {
+                    placeholder = "Wpisz hasło"
+                }
+                tag(TAG.BUTTON, className = "btn dance-btn-primary rounded-end-3") {
+                    setAttribute("type", "button")
+                    val iconTag = tag(TAG.I, className = "fa-solid fa-eye-slash text-light")
+                    onClick {
+                        if (passInput?.type == io.kvision.html.InputType.PASSWORD) {
+                            passInput?.type = io.kvision.html.InputType.TEXT
+                            iconTag.removeCssClass("fa-eye-slash"); iconTag.addCssClass("fa-eye")
+                        } else {
+                            passInput?.type = io.kvision.html.InputType.PASSWORD
+                            iconTag.removeCssClass("fa-eye"); iconTag.addCssClass("fa-eye-slash")
+                        }
+                    }
+                }
+            }
 
             val errorMsg = span("", className = "text-danger small d-block mb-2 text-center") { visible = false }
 
             tag(TAG.BUTTON, I18n.tr("Dołącz!", "Join!"), className = "btn dance-btn-primary btn-lg w-100 rounded-pill fw-bold") {
                 onClick {
-                    val fn = firstNameInput.value ?: ""; val ln = lastNameInput.value ?: ""; val em = emailInput.value ?: ""; val ps = passInput.value ?: ""
+                    val fn = firstNameInput.value ?: ""; val ln = lastNameInput.value ?: ""; val em = emailInput.value ?: ""; val ps = passInput?.value ?: ""
                     if (fn.isBlank() || ln.isBlank() || em.isBlank() || ps.isBlank()) { errorMsg.visible = true; return@onClick }
                     ApiService.registerUser(fn, ln, em, ps).then<dynamic> { modal.hide(); null }.catch<dynamic> { errorMsg.visible = true; null }
                 }
