@@ -1,0 +1,77 @@
+{
+  "version": "9",
+  "items": {
+    "d1f9f04833ac11d1ca873ebd29c33e75": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib-js/2.3.10/223ac422edef03801c2054415f613d6df4a2b545/kotlin-stdlib-js-2.3.10.klib"
+    },
+    "47da1a2f4aaceb2e2f84da351a825c97": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-dom-api-compat/2.3.10/f96059b23435872d56571c37e54abb77ea978f3/kotlin-dom-api-compat-2.3.10.klib"
+    },
+    "e03602fd1c528c7f246cf8f56f4911ed": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-js/9.4.0/93ddbbb5b88e6314c4ce7a9a9cfe3ee23d1492f7/kvision-js-9.4.0.klib",
+      "target": "kvision-project-kvision/9.4.0"
+    },
+    "b9e9bcf172ef2c178110c451c83bc7a7": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-js/1.10.2/b4a39afe26dfc2a3d9e5c1db6ad76bacdefeed0c/kotlinx-coroutines-core-js-1.10.2.klib"
+    },
+    "858404fde54d6639e1ac43a05516a54f": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/atomicfu-js/0.26.1/ba91e363bea53a576f68a7678e2cb65872b28e2b/atomicfu-js-0.26.1.klib"
+    },
+    "bd9e422e023c95cc2f6722d06c174988": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-common-types-js/9.4.0/329f1ceba19b6bc1b623bcff6049278b59fc2355/kvision-common-types-js-9.4.0.klib"
+    },
+    "8afb681c8113e97f4d5c12540e1e108c": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-js/1.10.0/92405c758bf4e8aea10ec2f34479ef28d56b057c/kotlinx-serialization-json-js-1.10.0.klib"
+    },
+    "55a82818aea82f09618e30434d65daba": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-core-js/1.10.0/605604e01bddd73559ae4379d3675f5b61f9b940/kotlinx-serialization-core-js-1.10.0.klib"
+    },
+    "d0d198acf984c5d64ab8b3dc71be861c": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-bootstrap-js/9.4.0/7361a1469bbad6b8add5fc34d52529c0bcbbd02f/kvision-bootstrap-js-9.4.0.klib",
+      "target": "kvision-project-kvision-modules-kvision-bootstrap/9.4.0"
+    },
+    "30b5ab4e06fc4042804d0c2da4f17068": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-toastify-js/9.4.0/c44bfe7f360bca485b00ea10df59587b72616442/kvision-toastify-js-9.4.0.klib",
+      "target": "kvision-project-kvision-modules-kvision-toastify/9.4.0"
+    },
+    "d09ecfa058e5357120e97ece980d91ff": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-fontawesome-js/9.4.0/eb38ae553b57691e415657635d05904e25a71a85/kvision-fontawesome-js-9.4.0.klib",
+      "target": "kvision-project-kvision-modules-kvision-fontawesome/9.4.0"
+    },
+    "767b53899760f439e4908332b7d9253f": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-tom-select-js/9.4.0/888ab4ba2dbea3391660eb6d10be31a864b9e307/kvision-tom-select-js-9.4.0.klib",
+      "target": "kvision-project-kvision-modules-kvision-tom-select/9.4.0"
+    },
+    "aa63d7d28add6649c20e9bdddfcb950b": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-state-js/9.4.0/ab453f8d9377d07a21775fbb38f3759ef614fb18/kvision-state-js-9.4.0.klib"
+    },
+    "cc33c7ab80639bf09639b00c8a64def5": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.github.petertrr/kotlin-multiplatform-diff-js/1.3.0/d999a1dd1060b5b885102fdd14b338135b2c2f60/kotlin-multiplatform-diff-js-1.3.0.klib"
+    },
+    "1cb8992ca62cdce9d19211c7296900cb": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-test-js/2.3.10/92a7c10ce3915a94b21bc627ec46a17671d05f83/kotlin-test-js-2.3.10.klib"
+    },
+    "7e884e14667d37a9238b4d6c6c89c626": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-testutils-js/9.4.0/9ce49014094ba56b668dce69d10ed3f0c9dec928/kvision-testutils-js-9.4.0.klib"
+    },
+    "66ee6b1975bea7e24979859c66eeffb2": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kvision/kvision-jquery-js/9.4.0/774da5ee61fd2887c0a767be80746e9200b79841/kvision-jquery-js-9.4.0.klib",
+      "target": "kvision-project-kvision-modules-kvision-jquery/9.4.0"
+    },
+    "f1b6af61f5365eaaed334b6c4cd74bf3": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kotest/kotest-assertions-core-js/6.1.3/d3f248b3a59397cfd9680ac276b0dba74d2066e8/kotest-assertions-core-js-6.1.3.klib"
+    },
+    "63f1e32818858520e20889b894ac7931": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kotest/kotest-assertions-shared-js/6.1.3/77c8d0161a501e7980ef2c55c642c394550b6e96/kotest-assertions-shared-js-6.1.3.klib"
+    },
+    "435df71c81c800c474dee085a3035617": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/io.kotest/kotest-common-js/6.1.3/b653d53f5184c786d864ac4ba465c5328b68e046/kotest-common-js-6.1.3.klib"
+    },
+    "19a7e2f87de2aeadd5e263b038b9e87c": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-test-js/1.10.2/be4c9dda8ab0192ce071902cacb9d991ecb260fc/kotlinx-coroutines-test-js-1.10.2.klib"
+    },
+    "bacfe3ccc3552f21346aab8d0e1472bd": {
+      "src": "/Users/arinadzyuba/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/2.2.21/17bc47f5dfe27c2351538e711f0afe377b0de6b2/kotlin-reflect-2.2.21.jar"
+    }
+  }
+}

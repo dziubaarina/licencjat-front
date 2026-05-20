@@ -41,9 +41,15 @@ try {
     // 3. Tworzenie Pull Requesta przez API
     console.log("Tworzenie Pull Requesta...");
     
+    // Pobieranie ostatniego commita, aby użyć go jako tytułu i opisu PR
+    const lastCommitMessage = execSync('git log -1 --pretty=%B').toString().trim();
+    const messageLines = lastCommitMessage.split('\n').filter(line => line.trim() !== '');
+    const title = messageLines[0] || `Automatyczny PR z gałęzi ${currentBranch}`;
+    const body = messageLines.slice(1).join('\n').trim();
+
     const data = JSON.stringify({
-        title: "Poprawka błędów wdrożenia na Render",
-        body: "Automatyczny PR z poprawkami Dockerfile (.dockerignore, limity pamięci).",
+        title: title,
+        body: body,
         head: currentBranch,
         base: "main"
     });
