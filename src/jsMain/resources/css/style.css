@@ -188,6 +188,12 @@ body {
     gap: 4px;
 }
 
+.dancer-tag-selected {
+    background: #ffc107;
+    color: #000;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
 .dancer-tag-remove {
     cursor: pointer;
     font-weight: bold;

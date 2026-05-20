@@ -1,4 +1,5 @@
 # Ignored custom files for fixes and documentation
 fixes_log.txt
 licencjat_frontend_documentation.md
-github-config.env
+github-config.env.DS_Store
+src/.DS_Store
