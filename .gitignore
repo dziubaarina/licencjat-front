@@ -4,3 +4,4 @@ licencjat_frontend_documentation.md
 github-config.env
 .DS_Store
 src/.DS_Store
+render-config.env
