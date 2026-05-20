@@ -1891,6 +1891,18 @@ class App : Application() {
         val isBlocked = window.localStorage.getItem("isActive") == "false"
 
         fun loadMessages(recipients: List<Int>?) {
+            if (isBlocked) {
+                if (recipients.isNullOrEmpty()) {
+                    messages.clear()
+                    return
+                }
+            } else {
+                if (recipients != null && recipients.isEmpty()) {
+                    messages.clear()
+                    return
+                }
+            }
+
             if (recipients != null && recipients.size > 1) {
                 messages.clear()
                 return // Group messages not implemented yet
@@ -1911,9 +1923,7 @@ class App : Application() {
                 if (isBlocked) {
                     val admin = (res as Array<dynamic>).find { it.role == "ADMIN" }
                     val adminId = admin?.id?.toString()?.toIntOrNull()
-                    if (adminId != null) {
-                        selectedRecipients.value = listOf(adminId)
-                    }
+                    selectedRecipients.value = if (adminId != null) listOf(adminId) else emptyList()
                 }
                 null
             }.catch<dynamic> { _: Throwable -> null }
