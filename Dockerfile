@@ -3,7 +3,7 @@ WORKDIR /app
 COPY . .
 # Budujemy bez sztucznych restrykcji pamięciowych, GitHub ma na to zasoby
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN gradle jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m" -Dkotlin.daemon.jvmargs="-Xmx2g"
+RUN gradle jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx2g -XX:MaxMetaspaceSize=512m"
 
 FROM nginx:alpine
 # Standardowy wyjściowy folder dla zadania jsBrowserDistribution w nowoczesnym Kotlin/JS
