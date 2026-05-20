@@ -1,7 +1,8 @@
 FROM gradle:8.5-jdk21 AS build
 WORKDIR /app
 COPY . .
-RUN gradle jsBrowserDistribution --no-daemon -Dorg.gradle.jvmargs="-Xmx1g -XX:MaxMetaspaceSize=256m"
+ENV NODE_OPTIONS="--max-old-space-size=128"
+RUN gradle jsBrowserDistribution --no-daemon --max-workers=1 -Dorg.gradle.jvmargs="-Xmx256m -XX:MaxMetaspaceSize=128m" -Dkotlin.daemon.jvmargs="-Xmx256m"
 
 RUN mkdir -p /app/frontend-dist && \
     # search the whole build tree for index.html (Kotlin/JS may place it under processedResources/js/main)
