@@ -956,7 +956,7 @@ class App : Application() {
                                                 selected.clear(); refresh(tagsBox, dropdownBox)
                                                 null
                                             }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
-                                                .finally<dynamic> { publishing.value = false; null }
+                                        .finally { publishing.value = false }
                                         } else {
                                             window.alert(I18n.tr("Wypełnij tytuł, wybierz tancerzy i dodaj wideo!", "Fill the title, choose dancers, and add a video!"))
                                         }
