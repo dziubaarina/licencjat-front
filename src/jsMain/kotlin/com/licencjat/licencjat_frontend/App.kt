@@ -41,11 +41,13 @@ object DataManager {
     val globalTasks = io.kvision.state.ObservableListWrapper<ChoreoTask>()
     val globalAnnouncements = io.kvision.state.ObservableListWrapper<dynamic>()
     val allUsers = io.kvision.state.ObservableListWrapper<dynamic>()
-    val allDancers = listOf(
-        "1" to "tancerz@danceapp.pl",
-        "2" to "Anna Kowalska",
-        "3" to "Jan Nowak"
-    )
+    val allDancers: List<Pair<String, String>>
+        get() = allUsers.filter { it.role?.toString() == "DANCER" }.map {
+            val id = it.id?.toString() ?: ""
+            val nameParts = listOf(it.firstName?.toString(), it.lastName?.toString()).filterNotNull().filter { it.isNotBlank() }
+            val name = nameParts.joinToString(" ").ifBlank { it.email?.toString() ?: "Tancerz #$id" }
+            id to name
+        }
 }
 
 object PlayerState {
@@ -807,6 +809,75 @@ class App : Application() {
     private fun Container.buildChoreoTasks() {
         val selected = io.kvision.state.ObservableListWrapper<String>()
         val choreoId = window.localStorage.getItem("userId")?.toLongOrNull() ?: 1L
+        val dancerLoading = ObservableValue(true)
+        val publishing = ObservableValue(false)
+        val taskError = ObservableValue<String?>(null)
+
+        fun loadDancers() {
+            dancerLoading.value = true
+            ApiService.fetchUsers().then<dynamic> { res ->
+                DataManager.allUsers.clear()
+                DataManager.allUsers.addAll(res as Array<dynamic>)
+                dancerLoading.value = false
+                null
+            }.catch<dynamic> { _: Throwable ->
+                dancerLoading.value = false
+                taskError.value = I18n.tr("Nie udało się pobrać listy tancerzy.", "Failed to load dancer list.")
+                null
+            }
+        }
+
+        fun refresh(tagsBox: Tag, dropdownBox: Tag) {
+            tagsBox.removeAll()
+            tagsBox.apply {
+                if (selected.isEmpty()) {
+                    span(I18n.tr("Kliknij, aby wybrać tancerzy \u25BE", "Click to select dancers \u25BE"), className = "text-muted small fst-italic")
+                } else {
+                    selected.forEach { id ->
+                        val name = DataManager.allDancers.find { it.first == id }?.second ?: id
+                        span(className = "dancer-tag dancer-tag-selected") {
+                            span(name)
+                            span(" \u00D7", className = "dancer-tag-remove") { onClick { selected.remove(id); refresh(tagsBox, dropdownBox) } }
+                        }
+                    }
+                    span(" \u25BE", className = "text-muted ms-2 small")
+                }
+            }
+            dropdownBox.removeAll()
+            dropdownBox.apply {
+                val dancers = DataManager.allDancers
+                if (dancers.isEmpty()) {
+                    div(className = "dancer-option text-muted fst-italic small") {
+                        span(I18n.tr("Brak dostępnych tancerzy do przypisania.", "No dancers available to assign."))
+                    }
+                } else {
+                    val allChosen = dancers.all { selected.contains(it.first) }
+                    if (!allChosen) {
+                        div(className = "dancer-option dancer-option-all") {
+                            span(I18n.tr("\u2605 Wszyscy moi tancerze", "\u2605 All my dancers"))
+                            onClick {
+                                dancers.forEach { (id, _) -> if (!selected.contains(id)) selected.add(id) }
+                                dropdownBox.visible = false
+                                refresh(tagsBox, dropdownBox)
+                            }
+                        }
+                    }
+                    dancers.filter { !selected.contains(it.first) }.forEach { (id, name) ->
+                        div(className = "dancer-option") {
+                            span(name)
+                            onClick {
+                                selected.add(id)
+                                dropdownBox.visible = false
+                                refresh(tagsBox, dropdownBox)
+                            }
+                        }
+                    }
+                    if (allChosen) div(className = "dancer-option text-muted fst-italic small") { span(I18n.tr("Wszyscy tancerze wybrani \u2713", "All dancers selected \u2713")) }
+                }
+            }
+        }
+
+        loadDancers()
 
         val activeTasks = io.kvision.state.ObservableListWrapper<dynamic>()
         ApiService.fetchTasks().then<dynamic> { res ->
@@ -835,76 +906,65 @@ class App : Application() {
                         label(I18n.tr("Przypisz do tancerzy:", "Assign to dancers:"), className = "form-label text-light fw-bold mt-2")
                         val tagsBox = div(className = "dancer-tags-box mb-0") {}
                         val dropdownBox = div(className = "dancer-dropdown") { visible = false }
-
-                        fun refresh() {
-                            tagsBox.removeAll()
-                            tagsBox.apply {
-                                if (selected.isEmpty()) span(I18n.tr("Kliknij, aby wybrać tancerzy \u25BE", "Click to select dancers \u25BE"), className = "text-muted small fst-italic")
-                                else {
-                                    selected.forEach { id ->
-                                        val name = DataManager.allDancers.find { it.first == id }?.second ?: id
-                                        span(className = "dancer-tag") {
-                                            span(name)
-                                            span(" \u00D7", className = "dancer-tag-remove") { onClick { selected.remove(id); refresh() } }
-                                        }
-                                    }
-                                    span(" \u25BE", className = "text-muted ms-2 small")
-                                }
-                            }
-                            dropdownBox.removeAll()
-                            dropdownBox.apply {
-                                val allChosen = DataManager.allDancers.all { selected.contains(it.first) }
-                                if (!allChosen) {
-                                    div(className = "dancer-option dancer-option-all") {
-                                        span(I18n.tr("\u2605 Wszyscy moi tancerze", "\u2605 All my dancers"))
-                                        onClick { DataManager.allDancers.forEach { (id, _) -> if (!selected.contains(id)) selected.add(id) }; dropdownBox.visible = false; refresh() }
+                        div(className = "mt-2") {
+                            bind(dancerLoading) { loading ->
+                                if (loading) {
+                                    span(I18n.tr("Ładowanie tancerzy...", "Loading dancers..."), className = "text-muted small")
+                                } else {
+                                    bind(taskError) { error ->
+                                        if (!error.isNullOrBlank()) span(error, className = "text-danger small")
+                                        else if (DataManager.allDancers.isEmpty()) span(I18n.tr("Brak tancerzy do wyboru, odśwież stronę.", "No dancers to choose from, refresh the page."), className = "text-muted small")
                                     }
                                 }
-                                DataManager.allDancers.filter { !selected.contains(it.first) }.forEach { (id, name) ->
-                                    div(className = "dancer-option") {
-                                        span(name)
-                                        onClick { selected.add(id); dropdownBox.visible = false; refresh() }
-                                    }
-                                }
-                                if (allChosen) div(className = "dancer-option text-muted fst-italic small") { span(I18n.tr("Wszyscy tancerze wybrani \u2713", "All dancers selected \u2713")) }
                             }
                         }
+                        refresh(tagsBox, dropdownBox)
                         tagsBox.onClick { dropdownBox.visible = !dropdownBox.visible }
-                        refresh()
 
                         div(className = "mt-4") {
                             label(I18n.tr("Wideo wzorcowe (wymagane)", "Reference video (required)"), className = "form-label text-light fw-bold")
                             val fileInput = tag(TAG.INPUT, className = "form-control mb-3") {
                                 setAttribute("type", "file"); setAttribute("accept", "video/*")
                             }
-                            tag(TAG.BUTTON, I18n.tr("Opublikuj zadanie", "Publish task"), className = "btn dance-btn-primary w-100 mt-3") {
-                                onClick {
-                                    val title = taskTitleInput.value
-                                    val desc = taskDescInput.value ?: ""
-                                    val files = fileInput.getElement()?.asDynamic().files
-                                    val deadlineRaw = deadlineInput.getElement()?.asDynamic().value?.toString() ?: ""
-                                    val deadline = if (deadlineRaw.length >= 16) {
-                                        val date = deadlineRaw.substring(0, 10)
-                                        val time = deadlineRaw.substring(11, 16)
-                                        val parts = date.split("-")
-                                        if (parts.size == 3) "${parts[2]}.${parts[1]}.${parts[0]} $time" else "01.01.2027 12:00"
-                                    } else "01.01.2027 12:00"
+                            val publishButtonContainer = div {}
+                            fun renderPublishButton() {
+                                publishButtonContainer.removeAll()
+                                tag(TAG.BUTTON, if (publishing.value) I18n.tr("Publikowanie...", "Publishing...") else I18n.tr("Opublikuj zadanie", "Publish task"), className = "btn dance-btn-primary w-100 mt-3") {
+                                    if (publishing.value) setAttribute("disabled", "disabled")
+                                    onClick {
+                                        if (publishing.value) return@onClick
+                                        val title = taskTitleInput.value
+                                        val desc = taskDescInput.value ?: ""
+                                        val files = fileInput.getElement()?.asDynamic()?.files
+                                        val deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
+                                        val deadline = if (deadlineRaw.length >= 16) {
+                                            val date = deadlineRaw.substring(0, 10)
+                                            val time = deadlineRaw.substring(11, 16)
+                                            val parts = deadlineRaw.split("-")
+                                            if (parts.size == 3) "${parts[2]}.${parts[1]}.${parts[0]} $time" else "01.01.2027 12:00"
+                                        } else "01.01.2027 12:00"
 
-                                    if (title != null && files != null && files.length > 0) {
-                                        val file = files[0]
-                                        ApiService.createTask(title, desc, deadline, choreoId, file).then<dynamic> { response: dynamic ->
-                                            activeTasks.add(0, response)
-                                            showToast(I18n.tr("✔ Zadanie zapisane w bazie!", "✔ Task saved to database!"))
-                                            taskTitleInput.value = null; taskDescInput.value = null
-                                            fileInput.getElement()?.asDynamic().value = ""
-                                            selected.clear(); refresh()
-                                            null
-                                        }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
-                                    } else {
-                                        window.alert(I18n.tr("Wypełnij tytuł i dodaj wideo!", "Fill the title and add a video!"))
+                                        if (!title.isNullOrBlank() && files != null && files.length > 0 && selected.isNotEmpty()) {
+                                            val file = files[0]
+                                            publishing.value = true
+                                            ApiService.createTask(title, desc, deadline, choreoId, file).then<dynamic> { response: dynamic ->
+                                                activeTasks.add(0, response)
+                                                showToast(I18n.tr("✔ Zadanie zapisane w bazie!", "✔ Task saved to database!"))
+                                                taskTitleInput.value = null
+                                                taskDescInput.value = null
+                                                fileInput.getElement()?.asDynamic()?.value = ""
+                                                selected.clear(); refresh(tagsBox, dropdownBox)
+                                                null
+                                            }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
+                                                .finally<dynamic> { publishing.value = false; null }
+                                        } else {
+                                            window.alert(I18n.tr("Wypełnij tytuł, wybierz tancerzy i dodaj wideo!", "Fill the title, choose dancers, and add a video!"))
+                                        }
                                     }
                                 }
                             }
+                            bind(publishing) { renderPublishButton() }
+                            renderPublishButton()
                         }
                     }
                 }
