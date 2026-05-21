@@ -836,8 +836,8 @@ class App : Application() {
                     selected.forEach { id ->
                         val name = DataManager.allDancers.find { it.first == id }?.second ?: id
                         span(className = "dancer-tag dancer-tag-selected") {
-                            span(name)
-                            span(" \u00D7", className = "dancer-tag-remove") { onClick { selected.remove(id); refresh(tagsBox, dropdownBox) } }
+                            span(name, className = "text-black fw-bold")
+                            span(" \u00D7", className = "dancer-tag-remove text-black fw-bold") { onClick { selected.remove(id); refresh(tagsBox, dropdownBox) } }
                         }
                     }
                     span(" \u25BE", className = "text-muted ms-2 small")
@@ -922,49 +922,47 @@ class App : Application() {
                         tagsBox.onClick { dropdownBox.visible = !dropdownBox.visible }
 
                         div(className = "mt-4") {
-                            label(I18n.tr("Wideo wzorcowe (wymagane)", "Reference video (required)"), className = "form-label text-light fw-bold")
+                            label(I18n.tr("Dodaj wideo (wymagane)", "Add video (required)"), className = "form-label text-light fw-bold")
                             val fileInput = tag(TAG.INPUT, className = "form-control mb-3") {
                                 setAttribute("type", "file"); setAttribute("accept", "video/*")
                             }
-                            val publishButtonContainer = div {}
-                            fun renderPublishButton() {
-                                publishButtonContainer.removeAll()
-                                tag(TAG.BUTTON, if (publishing.value) I18n.tr("Publikowanie...", "Publishing...") else I18n.tr("Opublikuj zadanie", "Publish task"), className = "btn dance-btn-primary w-100 mt-3") {
-                                    if (publishing.value) setAttribute("disabled", "disabled")
-                                    onClick {
-                                        if (publishing.value) return@onClick
-                                        val title = taskTitleInput.value
-                                        val desc = taskDescInput.value ?: ""
-                                        val files = fileInput.getElement()?.asDynamic()?.files
-                                        val deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
-                                        val deadline = if (deadlineRaw.length >= 16) {
-                                            val date = deadlineRaw.substring(0, 10)
-                                            val time = deadlineRaw.substring(11, 16)
-                                            val parts = deadlineRaw.split("-")
-                                            if (parts.size == 3) "${parts[2]}.${parts[1]}.${parts[0]} $time" else "01.01.2027 12:00"
-                                        } else "01.01.2027 12:00"
+                            div {
+                                bind(publishing) { isPub ->
+                                    tag(TAG.BUTTON, if (isPub) I18n.tr("Publikowanie...", "Publishing...") else I18n.tr("Opublikuj zadanie", "Publish task"), className = "btn dance-btn-primary w-100 mt-3") {
+                                        if (isPub) setAttribute("disabled", "disabled")
+                                        onClick {
+                                            if (publishing.value) return@onClick
+                                            val title = taskTitleInput.value
+                                            val desc = taskDescInput.value ?: ""
+                                            val files = fileInput.getElement()?.asDynamic()?.files
+                                            val deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
+                                            val deadline = if (deadlineRaw.length >= 16) {
+                                                val date = deadlineRaw.substring(0, 10)
+                                                val time = deadlineRaw.substring(11, 16)
+                                                val parts = deadlineRaw.split("-")
+                                                if (parts.size == 3) "${parts[2]}.${parts[1]}.${parts[0]} $time" else "01.01.2027 12:00"
+                                            } else "01.01.2027 12:00"
 
-                                        if (!title.isNullOrBlank() && files != null && files.length > 0 && selected.isNotEmpty()) {
-                                            val file = files[0]
-                                            publishing.value = true
-                                            ApiService.createTask(title, desc, deadline, choreoId, file).then<dynamic> { response: dynamic ->
-                                                activeTasks.add(0, response)
-                                                showToast(I18n.tr("✔ Zadanie zapisane w bazie!", "✔ Task saved to database!"))
-                                                taskTitleInput.value = null
-                                                taskDescInput.value = null
-                                                fileInput.getElement()?.asDynamic()?.value = ""
-                                                selected.clear(); refresh(tagsBox, dropdownBox)
-                                                null
-                                            }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
-                                        .finally { publishing.value = false }
-                                        } else {
-                                            window.alert(I18n.tr("Wypełnij tytuł, wybierz tancerzy i dodaj wideo!", "Fill the title, choose dancers, and add a video!"))
+                                            if (!title.isNullOrBlank() && files != null && files.length > 0 && selected.isNotEmpty()) {
+                                                val file = files[0]
+                                                publishing.value = true
+                                                ApiService.createTask(title, desc, deadline, choreoId, file).then<dynamic> { response: dynamic ->
+                                                    activeTasks.add(0, response)
+                                                    showToast(I18n.tr("✔ Zadanie zapisane w bazie!", "✔ Task saved to database!"))
+                                                    taskTitleInput.value = null
+                                                    taskDescInput.value = null
+                                                    fileInput.getElement()?.asDynamic()?.value = ""
+                                                    selected.clear(); refresh(tagsBox, dropdownBox)
+                                                    null
+                                                }.catch<dynamic> { _: Throwable -> window.alert(I18n.tr("Błąd połączenia z serwerem.", "Server connection error.")); null }
+                                                .finally { publishing.value = false }
+                                            } else {
+                                                window.alert(I18n.tr("Wypełnij tytuł, wybierz tancerzy i dodaj wideo!", "Fill the title, choose dancers, and add a video!"))
+                                            }
                                         }
                                     }
                                 }
                             }
-                            bind(publishing) { renderPublishButton() }
-                            renderPublishButton()
                         }
                     }
                 }
@@ -2183,19 +2181,16 @@ class App : Application() {
                                                                 span(m.createdAt?.toString()?.take(16)?.replace("T", " ") ?: "", className = "me-2")
 
                                                                 if (isMine) {
-                                                                    tag(TAG.I, className = "fa-solid fa-pen text-info me-2 hover-card") {
-                                                                        setStyle("cursor", "pointer")
-                                                                        onClick { isEditing.value = true }
-                                                                    }
-                                                                    tag(TAG.I, className = "fa-solid fa-trash text-danger hover-card") {
-                                                                        setStyle("cursor", "pointer")
+                                                                    tag(TAG.BUTTON, I18n.tr("Edytuj", "Edit"), className = "btn btn-sm btn-outline-info me-2 py-0 px-2") {
                                                                         onClick {
-                                                                            if (window.confirm(I18n.tr("Czy na pewno usunąć tę wiadomość?", "Delete this message?"))) {
-                                                                                ApiService.deleteChatMessage(mId).then<dynamic> {
-                                                                                    loadMessages(selectedRecipients.value)
-                                                                                    null
-                                                                                }.catch<dynamic> { _: Throwable -> window.alert("Błąd usuwania wiadomości."); null }
-                                                                            }
+                                                                            console.log("Kliknięto edytuj")
+                                                                            // isEditing.value = true // Zakomentowane do czasu przygotowania backendu
+                                                                        }
+                                                                    }
+                                                                    tag(TAG.BUTTON, I18n.tr("Usuń", "Delete"), className = "btn btn-sm btn-outline-danger py-0 px-2") {
+                                                                        onClick {
+                                                                            console.log("Kliknięto usuń")
+                                                                            // Struktura pod backend do dodania później
                                                                         }
                                                                     }
                                                                 }
