@@ -133,8 +133,8 @@ class App : Application() {
                 opacity: 1 !important;
             }
             .form-control:focus, .form-select:focus {
-                border-color: var(--color-primary, #a893ff) !important;
-                box-shadow: 0 0 0 0.25rem rgba(168, 147, 255, 0.25) !important;
+                border-color: var(--color-primary, #ff9eef) !important;
+                box-shadow: 0 0 0 0.25rem rgba(255, 158, 239, 0.25) !important;
             }
             .btn-close {
                 filter: invert(1) grayscale(100%) brightness(200%);

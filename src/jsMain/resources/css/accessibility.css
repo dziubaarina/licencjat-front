@@ -15,8 +15,8 @@ body:not([class*="theme-"]) {
     --color-text:        #f5f5f5;
     --color-text-muted:  #aaaaaa;
     --color-border:      #333333;
-    --color-primary:     #a893ff;
-    --color-primary-h:   #ff9eef;
+    --color-primary:     #ff9eef;
+    --color-primary-h:   #ff70dc;
     --color-primary-txt: #000000;
     --color-success:     #4caf50;
     --color-danger:      #f44336;
@@ -316,17 +316,17 @@ body[class*="theme-"] .dance-toast {
 
 #a11y-bar .a11y-btn:hover,
 #a11y-bar .a11y-btn:focus {
-    background: var(--color-primary, #a893ff);
+    background: var(--color-primary, #ff9eef);
     color: #000;
-    border-color: var(--color-primary, #a893ff);
-    outline: 2px solid var(--color-primary, #a893ff);
+    border-color: var(--color-primary, #ff9eef);
+    outline: 2px solid var(--color-primary, #ff9eef);
     outline-offset: 2px;
 }
 
 #a11y-bar .a11y-btn.active {
-    background: var(--color-primary, #a893ff) !important;
+    background: var(--color-primary, #ff9eef) !important;
     color: #000 !important;
-    border-color: var(--color-primary, #a893ff) !important;
+    border-color: var(--color-primary, #ff9eef) !important;
     font-weight: 700;
 }
 
@@ -352,9 +352,9 @@ body[class*="theme-"] .dance-toast {
 
 .a11y-icon-btn:hover,
 .a11y-icon-btn:focus {
-    background: var(--color-primary, #a893ff);
+    background: var(--color-primary, #ff9eef);
     color: #000;
-    outline: 2px solid var(--color-primary, #a893ff);
+    outline: 2px solid var(--color-primary, #ff9eef);
     outline-offset: 2px;
 }
 
@@ -376,7 +376,7 @@ body[class*="theme-"] .dance-toast {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: var(--color-primary, #a893ff);
+    background: var(--color-primary, #ff9eef);
     cursor: pointer;
     border: 2px solid #000;
     transition: background 0.15s;
@@ -386,12 +386,12 @@ body[class*="theme-"] .dance-toast {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: var(--color-primary, #a893ff);
+    background: var(--color-primary, #ff9eef);
     cursor: pointer;
     border: 2px solid #000;
 }
 
-.a11y-slider:focus { outline: 2px solid var(--color-primary, #a893ff); outline-offset: 2px; }
+.a11y-slider:focus { outline: 2px solid var(--color-primary, #ff9eef); outline-offset: 2px; }
 
 .a11y-pct-label {
     color: #aaa;
@@ -449,7 +449,7 @@ body.theme-high-contrast .a11y-icon-btn {
     top: -100px; left: 16px;
     z-index: 99999;
     padding: 10px 18px;
-    background: var(--color-primary, #a893ff);
+    background: var(--color-primary, #ff9eef);
     color: #000;
     font-weight: 700;
     border-radius: 0 0 8px 8px;
@@ -468,7 +468,7 @@ body.theme-high-contrast .a11y-icon-btn {
 :focus:not(:focus-visible) { outline: none; }
 
 :focus-visible {
-    outline: 3px solid var(--color-primary, #a893ff) !important;
+    outline: 3px solid var(--color-primary, #ff9eef) !important;
     outline-offset: 3px !important;
     border-radius: 4px;
 }
