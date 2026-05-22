@@ -554,3 +554,29 @@ body:not([class*="theme-"]) .badge.bg-warning *,
 body:not([class*="theme-"]) .badge.bg-info * {
     color: #000000 !important;
 }
+
+/* ================================================================
+   10. FIX: CZYTELNOŚĆ TAGÓW I MODALI
+   ================================================================ */
+
+/* Poprawka 2: Jasny tekst wewnątrz modali w ciemnych trybach */
+body.theme-dark .modal-content p,
+body.theme-dark .modal-content span:not(.badge),
+body:not([class*="theme-"]) .modal-content p,
+body:not([class*="theme-"]) .modal-content span:not(.badge),
+body.theme-high-contrast .modal-content p,
+body.theme-high-contrast .modal-content span:not(.badge),
+body.theme-deuteranopia .modal-content p,
+body.theme-deuteranopia .modal-content span:not(.badge) {
+    color: var(--color-text) !important;
+}
+
+/* Poprawka 1: Czarny tekst w pigułkach (tagach) we wszystkich motywach */
+body .ts-control .item,
+body .ts-control .item *,
+body .dancer-tag,
+body .dancer-tag *,
+body .dancer-tag-selected,
+body .dancer-tag-selected * {
+    color: #000000 !important;
+}
