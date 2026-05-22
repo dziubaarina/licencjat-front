@@ -915,6 +915,7 @@ class App : Application() {
                                         if (!error.isNullOrBlank()) span(error, className = "text-danger small")
                                         else if (DataManager.allDancers.isEmpty()) span(I18n.tr("Brak tancerzy do wyboru, odśwież stronę.", "No dancers to choose from, refresh the page."), className = "text-muted small")
                                     }
+                                    refresh(tagsBox, dropdownBox)
                                 }
                             }
                         }
