@@ -42,7 +42,7 @@ object DataManager {
     val globalAnnouncements = io.kvision.state.ObservableListWrapper<dynamic>()
     val allUsers = io.kvision.state.ObservableListWrapper<dynamic>()
     val allDancers: List<Pair<String, String>>
-        get() = allUsers.filter { it.role?.toString() == "DANCER" }.map {
+        get() = allUsers.filter { it.role?.toString() == "DANCER" && parseActiveFlag(it) }.map {
             val id = it.id?.toString() ?: ""
             val nameParts = listOf(it.firstName?.toString(), it.lastName?.toString()).filterNotNull().filter { it.isNotBlank() }
             val name = nameParts.joinToString(" ").ifBlank { it.email?.toString() ?: "Tancerz #$id" }
@@ -74,6 +74,19 @@ enum class Page {
     CHAT, ADMIN_ANNOUNCEMENTS, BLOCKED
 }
 
+// Pomocnicza funkcja do czytania pola aktywności z odpowiedzi backendu.
+// Przeniesiona na poziom pliku, aby była dostępna również dla DataManager.
+fun parseActiveFlag(obj: dynamic): Boolean {
+    return when {
+        obj == null -> false
+        obj.isActive == true -> true
+        obj.active == true -> true
+        obj.isActive?.toString() == "true" -> true
+        obj.active?.toString() == "true" -> true
+        else -> false
+    }
+}
+
 class App : Application() {
 
     private val appState = ObservableValue(Page.HOME)
@@ -83,19 +96,6 @@ class App : Application() {
     private var loginModal: Modal? = null
     private var registerModal: Modal? = null
 
-    // Pomocnicza funkcja do czytania pola aktywności z odpowiedzi backendu.
-    // Backend czasami wysyła pole jako `active`, a czasami jako `isActive` (np. Jackson zmienia nazwę).
-    // Funkcja przyjmuje obiekt dynamiczny i zwraca Boolean: true jeśli użytkownik jest aktywny.
-    private fun parseActiveFlag(obj: dynamic): Boolean {
-        return when {
-            obj == null -> false
-            obj.isActive == true -> true
-            obj.active == true -> true
-            obj.isActive?.toString() == "true" -> true
-            obj.active?.toString() == "true" -> true
-            else -> false
-        }
-    }
     override fun start() {
         AccessibilityBar.init()
         val savedToken = window.localStorage.getItem("jwt")
