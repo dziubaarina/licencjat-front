@@ -56,7 +56,7 @@ body {
 }
 
 .dance-btn-primary {
-    background-color: #a893ff !important;
+    background-color: #ff9eef !important;
     color: #ffffff !important;
     border-radius: 4px;
     border: none;
@@ -65,7 +65,7 @@ body {
 }
 
 .dance-btn-primary:hover {
-    background-color: #ff9eef !important;
+    background-color: #ff70dc !important;
     color: #000000 !important;
     transform: translateY(-2px);
 }
@@ -80,8 +80,8 @@ body {
     box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
 }
 
-.text-primary-dance { color: #a893ff !important; }
-.bg-primary-dance { background-color: #a893ff !important; }
+.text-primary-dance { color: #ff9eef !important; }
+.bg-primary-dance { background-color: #ff9eef !important; }
 
 /* Tryb ciemny dla paneli wewnętrznych */
 .border-secondary { border-color: #333 !important; }
@@ -92,7 +92,7 @@ body {
     transition: color 0.2s ease;
 }
 
-.hover-icon:hover { color: #a893ff !important; }
+.hover-icon:hover { color: #ff9eef !important; }
 
 /* Okienko Modal (Logowanie) w trybie ciemnym */
 .modal-content {
@@ -104,8 +104,8 @@ body {
 .modal-header .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
 .form-control-lg { border-radius: 8px; }
 .form-control:focus {
-    border-color: #a893ff;
-    box-shadow: 0 0 0 0.25rem rgba(168, 147, 255, 0.25);
+    border-color: #ff9eef;
+    box-shadow: 0 0 0 0.25rem rgba(255, 158, 239, 0.25);
 }
 
 /* ========================================= */
@@ -131,13 +131,13 @@ body {
 }
 
 .ts-dropdown .option.active, .ts-dropdown .option:hover {
-    background-color: #a893ff !important;
+    background-color: #ff9eef !important;
     color: #000000 !important;
 }
 
 /* Wygląd pojedynczego Taga (Pigułki) po wybraniu */
 .ts-control .item {
-    background-color: #a893ff !important;
+    background-color: #ff9eef !important;
     color: #000000 !important;
     border-radius: 4px;
     padding: 2px 8px !important;
@@ -166,8 +166,8 @@ body {
 
 .dancer-tags-box {
     min-height: 44px;
-    background: #1a1a1a;
-    border: 1px solid #444;
+    background: var(--color-bg, #1a1a1a);
+    border: 1px solid var(--color-border, #444);
     border-radius: 6px;
     padding: 8px 10px;
     display: flex;
@@ -179,14 +179,15 @@ body {
 .dancer-tag {
     display: inline-flex;
     align-items: center;
-    background: #a893ff;
-    color: #000;
+    background: #ff9eef;
+    color: #000000 !important;
     border-radius: 4px;
     padding: 3px 8px;
     font-weight: 500;
     font-size: 0.88rem;
     gap: 4px;
 }
+.dancer-tag * { color: #000000 !important; }
 
 .dancer-tag-selected {
     background: #ffc107;
@@ -210,24 +211,25 @@ body {
 }
 
 .dancer-dropdown {
-    background: #1a1a1a;
-    border: 1px solid #444;
+    background: var(--color-bg, #1a1a1a);
+    border: 1px solid var(--color-primary, #ff9eef);
     border-top: none;
     border-radius: 0 0 6px 6px;
 }
 
 .dancer-option {
     padding: 10px 14px;
-    color: #fff;
+    color: var(--color-text, #fff);
     cursor: pointer;
     transition: background 0.15s;
     font-size: 0.95rem;
 }
 
 .dancer-option:hover {
-    background: #a893ff;
-    color: #000;
+    background: #ff9eef;
+    color: #000000 !important;
 }
+.dancer-option:hover * { color: #000000 !important; }
 
 .dancer-option-all {
     font-weight: 600;
@@ -239,8 +241,8 @@ body {
 
 .dancer-tags-box {
     min-height: 44px;
-    background: #1a1a1a;
-    border: 1px solid #444;
+    background: var(--color-bg, #1a1a1a);
+    border: 1px solid var(--color-border, #444);
     border-radius: 6px;
     padding: 8px 10px;
     display: flex;
@@ -251,12 +253,12 @@ body {
     user-select: none;
     transition: border-color 0.2s;
 }
-.dancer-tags-box:hover { border-color: #a893ff; }
+.dancer-tags-box:hover { border-color: #ff9eef; }
 .dancer-tag {
     display: inline-flex;
     align-items: center;
-    background: #a893ff;
-    color: #000;
+    background: #ff9eef;
+    color: #000000 !important;
     border-radius: 4px;
     padding: 3px 8px;
     font-weight: 500;
@@ -264,6 +266,7 @@ body {
     gap: 4px;
     cursor: default;
 }
+.dancer-tag * { color: #000000 !important; }
 .dancer-tag-remove {
     cursor: pointer;
     font-weight: bold;
@@ -276,20 +279,21 @@ body {
 }
 .dancer-tag-remove:hover { color: #cc0000; }
 .dancer-dropdown {
-    background: #1a1a1a;
-    border: 1px solid #a893ff;
+    background: var(--color-bg, #1a1a1a);
+    border: 1px solid var(--color-primary, #ff9eef);
     border-top: none;
     border-radius: 0 0 6px 6px;
     overflow: hidden;
 }
 .dancer-option {
     padding: 10px 14px;
-    color: #fff;
+    color: var(--color-text, #fff);
     cursor: pointer;
     transition: background 0.15s;
     font-size: 0.95rem;
 }
-.dancer-option:hover { background: #a893ff; color: #000; }
+.dancer-option:hover { background: #ff9eef; color: #000000 !important; }
+.dancer-option:hover * { color: #000000 !important; }
 .dancer-option-all { font-weight: 600; border-bottom: 1px solid #333; }
 
 /* =============================== */
@@ -301,7 +305,7 @@ body {
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%) translateY(0);
-    background: #a893ff;
+    background: #ff9eef;
     color: #000;
     font-weight: 600;
     font-size: 1rem;
@@ -327,7 +331,7 @@ body {
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%) translateY(0);
-    background: #a893ff;
+    background: #ff9eef;
     color: #000;
     font-weight: 600;
     font-size: 1rem;
