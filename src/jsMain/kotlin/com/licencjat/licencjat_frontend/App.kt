@@ -938,11 +938,8 @@ class App : Application() {
                                             val files = fileInput.getElement()?.asDynamic()?.files
                                             val deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
                                             val deadline = if (deadlineRaw.length >= 16) {
-                                                val date = deadlineRaw.substring(0, 10)
-                                                val time = deadlineRaw.substring(11, 16)
-                                                val parts = deadlineRaw.split("-")
-                                                if (parts.size == 3) "${parts[2]}.${parts[1]}.${parts[0]} $time" else "01.01.2027 12:00"
-                                            } else "01.01.2027 12:00"
+                                                deadlineRaw.take(16) + ":00"
+                                            } else "2027-01-01T12:00:00"
 
                                             if (!title.isNullOrBlank() && files != null && files.length > 0 && selected.isNotEmpty()) {
                                                 val file = files[0]
