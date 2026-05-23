@@ -8,6 +8,13 @@ import io.kvision.state.bind
 import io.kvision.modal.Modal
 import kotlinx.browser.window
 
+private fun extractList(res: dynamic): Array<dynamic> {
+    if (res == null) return emptyArray()
+    if (js("Array.isArray(res)") as Boolean) return res as Array<dynamic>
+    if (res.content != null && js("Array.isArray(res.content)") as Boolean) return res.content as Array<dynamic>
+    return emptyArray()
+}
+
 fun Container.buildDancerDashboard(appState: ObservableValue<Page>) {
     div(className = "container py-5 mt-5") {
         h2(I18n.tr("Panel Tancerza", "Dancer Panel"), className = "fw-bold text-primary-dance mb-4 pt-4")
@@ -30,14 +37,14 @@ fun Container.buildDancerTasks(appState: ObservableValue<Page>) {
     val loading = ObservableValue(true)
 
     ApiService.fetchTasks().then<dynamic> { res: dynamic ->
-        tasks.addAll(res as Array<dynamic>)
-        ApiService.fetchSubmissionsForDancer(myId).then<dynamic> { res2: dynamic ->
-            subs.addAll(res2 as Array<dynamic>)
+        tasks.addAll(extractList(res))
+        ApiService.fetchSubmissionsForDancer(myId).then<dynamic> { resSubs: dynamic ->
+            subs.addAll(extractList(resSubs))
             loading.value = false
             null
-        }.catch<dynamic> { _: Throwable -> loading.value = false; null }
+        }.catch<dynamic> { e: Throwable -> console.log("Submissions error:", e); loading.value = false; null }
         null
-    }.catch<dynamic> { _: Throwable -> loading.value = false; null }
+    }.catch<dynamic> { e: Throwable -> console.log("Tasks error:", e); loading.value = false; null }
 
     div(className = "container py-5 mt-5 pt-5") {
         backButton(appState, Page.DANCER_DASHBOARD)
@@ -52,7 +59,9 @@ fun Container.buildDancerTasks(appState: ObservableValue<Page>) {
                 } else {
                     bind(tasks) { taskList ->
                         bind(subs) { subList ->
-                            val subTaskIds = subList.mapNotNull { it.taskId?.toString()?.toIntOrNull() }.toSet()
+                            val subTaskIds = subList.mapNotNull { sub ->
+                                (sub.taskId ?: sub.task?.id)?.toString()?.toIntOrNull()
+                            }.toSet()
 
                             val doneTasks = taskList.filter { it.id?.toString()?.toIntOrNull() in subTaskIds }
                             val pendingTasks = taskList.filter { it.id?.toString()?.toIntOrNull() !in subTaskIds }
@@ -193,14 +202,14 @@ fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
     val loading = ObservableValue(true)
 
     ApiService.fetchTasks().then<dynamic> { resTasks: dynamic ->
-        tasks.addAll(resTasks as Array<dynamic>)
+        tasks.addAll(extractList(resTasks))
         ApiService.fetchSubmissionsForDancer(myId).then<dynamic> { resSubs: dynamic ->
-            subs.addAll(resSubs as Array<dynamic>)
+            subs.addAll(extractList(resSubs))
             loading.value = false
             null
-        }.catch<dynamic> { _: Throwable -> loading.value = false; null }
+        }.catch<dynamic> { e: Throwable -> console.log("Sub err:", e); loading.value = false; null }
         null
-    }.catch<dynamic> { _: Throwable -> loading.value = false; null }
+    }.catch<dynamic> { e: Throwable -> console.log("Task err:", e); loading.value = false; null }
 
     div(className = "container py-5 mt-5 pt-5") {
         backButton(appState, Page.DANCER_DASHBOARD)
@@ -228,10 +237,10 @@ fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
                                 tbody {
                                     sortedSubs.forEach { s ->
                                         val subId = s.id?.toString()?.toIntOrNull() ?: 0
-                                        val taskId = s.taskId?.toString()?.toIntOrNull() ?: 0
+                                        val taskId = (s.taskId ?: s.task?.id)?.toString()?.toIntOrNull() ?: 0
                                         val taskObj = tasks.find { it.id?.toString()?.toIntOrNull() == taskId }
                                         val taskTitle = taskObj?.title?.toString() ?: (I18n.tr("Zadanie #", "Task #") + "$taskId")
-                                        val statusStr = s.status?.toString() ?: "SUBMITTED"
+                                        val statusStr = s.status?.toString()?.uppercase() ?: "SUBMITTED"
                                         val score = s.score?.toString()
 
                                         tr {
@@ -300,10 +309,10 @@ fun Container.buildDancerStats(appState: ObservableValue<Page>) {
     val loading = ObservableValue(true)
 
     ApiService.fetchSubmissionsForDancer(myId).then<dynamic> { res ->
-        subs.addAll(res as Array<dynamic>)
+        subs.addAll(extractList(res))
         loading.value = false
         null
-    }.catch<dynamic> { _: Throwable -> loading.value = false; null }
+    }.catch<dynamic> { e: Throwable -> console.log("Stats err:", e); loading.value = false; null }
 
     div(className = "container py-5 mt-5 pt-5") {
         backButton(appState, Page.DANCER_DASHBOARD)
@@ -316,7 +325,7 @@ fun Container.buildDancerStats(appState: ObservableValue<Page>) {
                 } else {
                     bind(subs) { subList ->
                         val allCount = subList.size
-                        val gradedSubs = subList.filter { it.status?.toString() == "GRADED" }
+                        val gradedSubs = subList.filter { it.status?.toString()?.uppercase() == "GRADED" }
                         val gradedCount = gradedSubs.size
 
                         val scores = gradedSubs.mapNotNull { it.score?.toString()?.toIntOrNull() }
