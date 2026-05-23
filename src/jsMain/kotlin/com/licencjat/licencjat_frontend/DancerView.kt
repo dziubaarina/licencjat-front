@@ -60,7 +60,9 @@ fun Container.buildDancerTasks(appState: ObservableValue<Page>) {
                     bind(tasks) { taskList ->
                         bind(subs) { subList ->
                             val subTaskIds = subList.mapNotNull { sub ->
-                                (sub.taskId ?: sub.task?.id)?.toString()?.toIntOrNull()
+                                val explicitId = sub.taskId?.toString()?.toIntOrNull()
+                                val nestedId = sub.task?.id?.toString()?.toIntOrNull()
+                                explicitId ?: nestedId
                             }.toSet()
 
                             val doneTasks = taskList.filter { it.id?.toString()?.toIntOrNull() in subTaskIds }
@@ -237,7 +239,9 @@ fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
                                 tbody {
                                     sortedSubs.forEach { s ->
                                         val subId = s.id?.toString()?.toIntOrNull() ?: 0
-                                        val taskId = (s.taskId ?: s.task?.id)?.toString()?.toIntOrNull() ?: 0
+                                            val explicitTaskId = s.taskId?.toString()?.toIntOrNull()
+                                            val nestedTaskId = s.task?.id?.toString()?.toIntOrNull()
+                                            val taskId = explicitTaskId ?: nestedTaskId ?: 0
                                         val taskObj = tasks.find { it.id?.toString()?.toIntOrNull() == taskId }
                                         val taskTitle = taskObj?.title?.toString() ?: (I18n.tr("Zadanie #", "Task #") + "$taskId")
                                         val statusStr = s.status?.toString()?.uppercase() ?: "SUBMITTED"
