@@ -82,7 +82,14 @@ fun Container.buildDancerTasks(appState: ObservableValue<Page>) {
                                                         div(className = "mt-auto pt-2 border-top border-secondary") {
                                                             tag(TAG.BUTTON, I18n.tr("Szczegóły & Opublikuj Nagranie", "Details & Publish Recording"), className = "btn btn-sm dance-btn-primary w-100 fw-bold") {
                                                                 onClick {
-                                                                    showTaskDetailsModal(tId, title, desc, deadline, instrUrl) { appState.value = Page.DANCER_SUBMISSIONS }
+                                                                showTaskDetailsModal(tId, title, desc, deadline, instrUrl) {
+                                                                    // Dodajemy lokalnie informację o wysłaniu, co przeniesie element w UI do sąsiedniej kolumny
+                                                                    val newSub = js("{}")
+                                                                    newSub.taskId = tId
+                                                                    newSub.status = "SUBMITTED"
+                                                                    newSub.sentAt = js("new Date().toISOString()")
+                                                                    subs.add(newSub)
+                                                                }
                                                                 }
                                                             }
                                                         }
@@ -216,7 +223,7 @@ fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
                             val sortedSubs = subList.sortedByDescending { it.id?.toString()?.toIntOrNull() ?: 0 }
                             table(className = "table table-dark table-hover align-middle") {
                                 thead { tr {
-                                    th("ID"); th(I18n.tr("Zadanie", "Task")); th(I18n.tr("Data", "Date")); th(I18n.tr("Status", "Status")); th(I18n.tr("Ocena", "Grade")); th(I18n.tr("Akcja", "Action"))
+                                    th("ID"); th(I18n.tr("Zadanie", "Task")); th(I18n.tr("Data", "Date")); th(I18n.tr("Status", "Status")); th(I18n.tr("Ocena", "Grade")); th(I18n.tr("Feedback", "Feedback")); th(I18n.tr("Akcja", "Action"))
                                 } }
                                 tbody {
                                     sortedSubs.forEach { s ->
@@ -242,6 +249,15 @@ fun Container.buildDancerSubmissions(appState: ObservableValue<Page>) {
                                                 if (statusStr == "GRADED" && score != null) span("$score/10", className = "badge bg-info text-dark fs-6")
                                                 else span("—", className = "text-muted")
                                             }
+                                        td {
+                                            if (statusStr == "GRADED") {
+                                                val fText = s.feedback?.toString()
+                                                if (fText.isNullOrBlank()) span("—", className = "text-muted")
+                                                else span(fText.take(40) + if (fText.length > 40) "..." else "")
+                                            } else {
+                                                span("—", className = "text-muted")
+                                            }
+                                        }
                                             td {
                                                 if (statusStr == "GRADED") {
                                                     tag(TAG.BUTTON, I18n.tr("Zobacz Feedback", "View Feedback"), className = "btn btn-sm dance-btn-primary") {
