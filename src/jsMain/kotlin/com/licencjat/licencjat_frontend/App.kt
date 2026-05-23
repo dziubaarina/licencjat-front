@@ -630,8 +630,13 @@ class App : Application() {
                             modal.hide()
                         }
                         null
-                    }.catch<dynamic> {
-                        errorText.content = I18n.tr("Błędny e-mail lub hasło!", "Invalid email or password!")
+                    }.catch<dynamic> { e: Throwable ->
+                        val errMsg = e.message ?: ""
+                        if (errMsg.contains("401") || errMsg.contains("403")) {
+                            errorText.content = I18n.tr("Błędny e-mail lub hasło!", "Invalid email or password!")
+                        } else {
+                            errorText.content = I18n.tr("Błąd połączenia z serwerem. Spróbuj ponownie później.", "Server connection error. Please try again later.")
+                        }
                         errorAlert.visible = true
                         null
                     }
