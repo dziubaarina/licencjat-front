@@ -151,7 +151,7 @@ class App : Application() {
             
             .dancer-tag-selected {
                 background-color: var(--color-primary, #ff9eef);
-                color: var(--color-bg, #121212) !important;
+                color: #000000 !important;
                 border-radius: 999px;
                 padding: 2px 10px;
                 display: inline-flex;
@@ -161,10 +161,15 @@ class App : Application() {
             body.theme-light .dancer-tag-selected,
             body.theme-dark .dancer-tag-selected {
                 background-color: #ff9eef;
-                color: #121212 !important;
+                color: #000000 !important;
+            }
+            .dancer-tag-selected span {
+                color: #000000 !important;
+                -webkit-text-fill-color: #000000 !important;
+                opacity: 1 !important;
             }
             .dancer-tag-remove {
-                color: inherit !important;
+                color: #000000 !important;
             }
         """.trimIndent()
         document.head?.appendChild(style)
@@ -831,7 +836,7 @@ class App : Application() {
 
     private fun Container.buildChoreoTasks() {
         val selected = io.kvision.state.ObservableListWrapper<String>()
-        val choreoId = window.localStorage.getItem("userId")?.toLongOrNull() ?: 1L
+        val choreoId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
         val dancerLoading = ObservableValue(true)
         val publishing = ObservableValue(false)
         val taskError = ObservableValue<String?>(null)
