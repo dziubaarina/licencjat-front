@@ -353,3 +353,15 @@ body {
     color: #1a1a1a !important;
     font-weight: bold !important;
 }
+
+/* Kolor wpisywanego tekstu w Tom Select i własnym multi-select */
+.ts-wrapper .ts-control input,
+.dancer-tags-box input {
+    color: #ffffff !important;
+}
+
+/* Kolor placeholdera wewnątrz Tom Select i własnym multi-select */
+.ts-wrapper .ts-control input::placeholder,
+.dancer-tags-box input::placeholder {
+    color: #aaaaaa !important;
+}
