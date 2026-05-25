@@ -148,6 +148,24 @@ class App : Application() {
             .bg-primary-dance.hover-card .fw-bold {
                 color: #000000 !important;
             }
+            
+            .dancer-tag-selected {
+                background-color: var(--color-primary, #ff9eef);
+                color: var(--color-bg, #121212) !important;
+                border-radius: 999px;
+                padding: 2px 10px;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            body.theme-light .dancer-tag-selected,
+            body.theme-dark .dancer-tag-selected {
+                background-color: #ff9eef;
+                color: #121212 !important;
+            }
+            .dancer-tag-remove {
+                color: inherit !important;
+            }
         """.trimIndent()
         document.head?.appendChild(style)
 
@@ -841,8 +859,8 @@ class App : Application() {
                     selected.forEach { id ->
                         val name = DataManager.allDancers.find { it.first == id }?.second ?: id
                         span(className = "dancer-tag dancer-tag-selected") {
-                            span(name, className = "text-black fw-bold")
-                            span(" \u00D7", className = "dancer-tag-remove text-black fw-bold") { onClick { selected.remove(id); refresh(tagsBox, dropdownBox) } }
+                            span(name, className = "fw-bold")
+                            span(" \u00D7", className = "dancer-tag-remove fw-bold") { onClick { selected.remove(id); refresh(tagsBox, dropdownBox) } }
                         }
                     }
                     span(" \u25BE", className = "text-muted ms-2 small")
