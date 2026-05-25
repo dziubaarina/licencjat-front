@@ -365,3 +365,21 @@ body {
 .dancer-tags-box input::placeholder {
     color: #aaaaaa !important;
 }
+
+/* Wymuszenie absolutnie czarnego koloru tekstu i krzyżyka w pigułkach */
+.ts-control .item,
+.ts-control .item span,
+.ts-control .item a,
+.ts-control .item .remove,
+.dancer-tag,
+.dancer-tag span,
+.dancer-tag a,
+.dancer-tag .dancer-tag-remove {
+    color: #000000 !important;
+}
+
+/* Usunięcie ewentualnych cieni tekstu, które mogą go wyszarzać */
+.ts-control .item, 
+.dancer-tag {
+    text-shadow: none !important;
+}
