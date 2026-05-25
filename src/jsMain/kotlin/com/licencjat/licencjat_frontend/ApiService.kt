@@ -6,9 +6,32 @@ import org.w3c.files.Blob
 object ApiService {
 
     private const val BASE = "https://danceinsense.onrender.com"
-    //private const val BASE = "http://localhost:8080"
+    private const val CLOUDINARY_CLOUD = "dechlzont"
+    private const val CLOUDINARY_PRESET = "danceinsense"
+    private const val CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/$CLOUDINARY_CLOUD/video/upload"
 
     private fun token() = window.localStorage.getItem("jwt") ?: ""
+
+    // ==========================================
+    // CLOUDINARY DIRECT UPLOAD
+    // Plik idzie bezpośrednio z przeglądarki do Cloudinary,
+    // backend dostaje tylko URL — omijamy limit pamięci Render.
+    // ==========================================
+
+    fun uploadToCloudinary(file: dynamic): kotlin.js.Promise<dynamic> {
+        val formData = org.w3c.xhr.FormData()
+        formData.append("file", file as Blob)
+        formData.append("upload_preset", CLOUDINARY_PRESET)
+        formData.append("resource_type", "video")
+
+        return window.fetch(CLOUDINARY_URL, org.w3c.fetch.RequestInit(
+            method = "POST",
+            body = formData
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd uploadu do Cloudinary: ${response.status}")
+        }
+    }
 
     // ==========================================
     // AUTH
@@ -95,6 +118,9 @@ object ApiService {
 
     // ==========================================
     // TASKS
+    // POPRAWKA: createTask teraz najpierw uploaduje do Cloudinary,
+    // potem wysyła URL do backendu jako JSON (nie multipart).
+    // Eliminuje OutOfMemoryError na Render free tier.
     // ==========================================
 
     fun fetchTasks(): kotlin.js.Promise<dynamic> {
@@ -111,20 +137,28 @@ object ApiService {
     }
 
     fun createTask(title: String, desc: String, deadline: String, choreoId: Long, file: dynamic): kotlin.js.Promise<dynamic> {
-        val formData = org.w3c.xhr.FormData()
-        formData.append("title", title)
-        formData.append("description", desc)
-        formData.append("deadline", deadline)
-        formData.append("choreographerId", choreoId.toString())
-        formData.append("file", file as Blob)
-
-        return window.fetch("$BASE/tasks", org.w3c.fetch.RequestInit(
-            method = "POST",
-            headers = kotlin.js.json("Authorization" to "Bearer ${token()}"),
-            body = formData
-        )).then { response ->
-            if (response.ok) response.json()
-            else throw Exception("Błąd tworzenia zadania: ${response.status}")
+        // Krok 1: upload pliku bezpośrednio do Cloudinary z przeglądarki
+        return uploadToCloudinary(file).then<dynamic> { cloudinaryRes: dynamic ->
+            val videoUrl = cloudinaryRes.secure_url?.toString()
+                ?: throw Exception("Cloudinary nie zwróciło URL")
+            // Krok 2: wyślij URL + dane do backendu jako JSON
+            window.fetch("$BASE/tasks/url", org.w3c.fetch.RequestInit(
+                method = "POST",
+                headers = kotlin.js.json(
+                    "Authorization" to "Bearer ${token()}",
+                    "Content-Type" to "application/json"
+                ),
+                body = JSON.stringify(kotlin.js.json(
+                    "title" to title,
+                    "description" to desc,
+                    "deadline" to deadline,
+                    "choreographerId" to choreoId,
+                    "instructionVideoUrl" to videoUrl
+                ))
+            )).then { response ->
+                if (response.ok) response.json()
+                else throw Exception("Błąd tworzenia zadania: ${response.status}")
+            }
         }
     }
 
@@ -158,21 +192,31 @@ object ApiService {
 
     // ==========================================
     // SUBMISSIONS
+    // POPRAWKA: uploadVideoForTask teraz najpierw uploaduje do Cloudinary,
+    // potem wysyła URL do backendu jako JSON (nie multipart).
     // ==========================================
 
     fun uploadVideoForTask(file: dynamic, taskId: Int, dancerId: Int): kotlin.js.Promise<dynamic> {
-        val formData = org.w3c.xhr.FormData()
-        formData.append("file", file as Blob)
-        formData.append("taskId", taskId.toString())
-        formData.append("dancerId", dancerId.toString())
-
-        return window.fetch("$BASE/submissions", org.w3c.fetch.RequestInit(
-            method = "POST",
-            headers = kotlin.js.json("Authorization" to "Bearer ${token()}"),
-            body = formData
-        )).then { response ->
-            if (response.ok) response.json()
-            else throw Exception("Błąd serwera: ${response.status}")
+        // Krok 1: upload pliku bezpośrednio do Cloudinary z przeglądarki
+        return uploadToCloudinary(file).then<dynamic> { cloudinaryRes: dynamic ->
+            val videoUrl = cloudinaryRes.secure_url?.toString()
+                ?: throw Exception("Cloudinary nie zwróciło URL")
+            // Krok 2: wyślij URL + dane do backendu jako JSON
+            window.fetch("$BASE/submissions/url", org.w3c.fetch.RequestInit(
+                method = "POST",
+                headers = kotlin.js.json(
+                    "Authorization" to "Bearer ${token()}",
+                    "Content-Type" to "application/json"
+                ),
+                body = JSON.stringify(kotlin.js.json(
+                    "taskId" to taskId,
+                    "dancerId" to dancerId,
+                    "videoUrl" to videoUrl
+                ))
+            )).then { response ->
+                if (response.ok) response.json()
+                else throw Exception("Błąd serwera: ${response.status}")
+            }
         }
     }
 
@@ -346,7 +390,7 @@ object ApiService {
     }
 
     // ==========================================
-    // CZAT (Messenger Style)
+    // CZAT
     // ==========================================
 
     fun fetchChat(recipientId: Int? = null): kotlin.js.Promise<dynamic> {
