@@ -136,7 +136,7 @@ object ApiService {
         }
     }
 
-    fun createTask(title: String, desc: String, deadline: String, choreoId: Long, file: dynamic): kotlin.js.Promise<dynamic> {
+    fun createTask(title: String, desc: String, deadline: String, choreoId: Long, dancerIds: List<String>, file: dynamic): kotlin.js.Promise<dynamic> {
         // Krok 1: upload pliku bezpośrednio do Cloudinary z przeglądarki
         return uploadToCloudinary(file).then<dynamic> { cloudinaryRes: dynamic ->
             val videoUrl = cloudinaryRes.secure_url?.toString()
@@ -153,6 +153,7 @@ object ApiService {
                     "description" to desc,
                     "deadline" to deadline,
                     "choreographerId" to choreoId,
+                    "dancerIds" to dancerIds.toTypedArray(),
                     "instructionVideoUrl" to videoUrl
                 ))
             )).then { response ->
