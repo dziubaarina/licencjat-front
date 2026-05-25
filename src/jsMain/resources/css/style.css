@@ -384,11 +384,14 @@ body {
     text-shadow: none !important;
 }
 
-/* Wymuszenie czarnego koloru dla Tom Select / Pigułek z tancerzami */
+/* OSTATECZNE WYMUSZENIE CZARNEGO TEKSTU W PIGUŁCE (Zdejmuje przezroczystość) */
 html body div.ts-wrapper.multi .ts-control > div.item,
 html body div.ts-wrapper.multi .ts-control > div.item *,
 html body div.dancer-tags-box div.dancer-tag,
 html body div.dancer-tags-box div.dancer-tag * {
     color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important; /* Nadpisuje style silnika przeglądarki */
+    opacity: 1 !important;                       /* Usuwa wyszarzenie/przezroczystość */
     text-shadow: none !important;
+    font-weight: 600 !important;                 /* Pogrubia tekst dla lepszej czytelności */
 }
