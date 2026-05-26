@@ -110,21 +110,29 @@ object ApiService {
         }
     }
 
-    fun createTask(title: String, desc: String, deadline: String, choreoId: Int, file: dynamic): kotlin.js.Promise<dynamic> {
-        val formData = org.w3c.xhr.FormData()
-        formData.append("title", title)
-        formData.append("description", desc)
-        formData.append("deadline", deadline)
-        formData.append("choreographerId", choreoId.toString())
-        formData.append("file", file as Blob)
-
-        return window.fetch("$BASE/tasks", org.w3c.fetch.RequestInit(
-            method = "POST",
-            headers = kotlin.js.json("Authorization" to "Bearer ${token()}"),
-            body = formData
-        )).then { response ->
-            if (response.ok) response.json()
-            else throw Exception("Błąd tworzenia zadania: ${response.status}")
+    fun createTask(title: String, description: String, deadline: String, choreoId: Int, dancerIds: List<String>, file: dynamic): kotlin.js.Promise<dynamic> {
+        return uploadToCloudinary(file).then<dynamic> { cloudinaryRes: dynamic ->
+            val videoUrl = cloudinaryRes.secure_url?.toString()
+                ?: throw Exception("Cloudinary nie zwróciło URL")
+            
+            window.fetch("$BASE/tasks/url", org.w3c.fetch.RequestInit(
+                method = "POST",
+                headers = kotlin.js.json(
+                    "Authorization" to "Bearer ${token()}",
+                    "Content-Type" to "application/json"
+                ),
+                body = JSON.stringify(kotlin.js.json(
+                    "title" to title,
+                    "description" to description,
+                    "deadline" to deadline,
+                    "choreographerId" to choreoId,
+                    "dancerIds" to dancerIds.toTypedArray(),
+                    "instructionVideoUrl" to videoUrl
+                ))
+            )).then { response ->
+                if (response.ok) response.json()
+                else throw Exception("Błąd tworzenia zadania: ${response.status}")
+            }
         }
     }
 
