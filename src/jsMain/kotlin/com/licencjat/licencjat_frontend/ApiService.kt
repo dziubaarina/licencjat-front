@@ -110,7 +110,7 @@ object ApiService {
         }
     }
 
-    fun createTask(title: String, desc: String, deadline: String, choreoId: Long, file: dynamic): kotlin.js.Promise<dynamic> {
+    fun createTask(title: String, desc: String, deadline: String, choreoId: Int, file: dynamic): kotlin.js.Promise<dynamic> {
         val formData = org.w3c.xhr.FormData()
         formData.append("title", title)
         formData.append("description", desc)
