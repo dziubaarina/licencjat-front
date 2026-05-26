@@ -565,7 +565,7 @@ class App : Application() {
         }
 
         modal.vPanel(className = "p-4") {
-            h3(I18n.tr("Witaj w DANCE APP", "Welcome to DANCE APP"), className = "text-center fw-bold text-primary-dance mb-4")
+            h3(I18n.tr("Witaj w DanceInSense APP", "Welcome to DanceInSense APP"), className = "text-center fw-bold text-primary-dance mb-4")
 
             label(I18n.tr("Adres e-mail", "Email address"), className = "form-label fw-bold mb-1")
             val emailInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control login-input rounded-3 mb-3") {
@@ -678,7 +678,7 @@ class App : Application() {
         }
 
         modal.vPanel(className = "p-4") {
-            h3(I18n.tr("Utwórz konto w DANCE APP", "Create an account"), className = "text-center fw-bold text-primary-dance mb-4")
+            h3(I18n.tr("Utwórz konto w DanceInSense APP", "Create an account"), className = "text-center fw-bold text-primary-dance mb-4")
             label(I18n.tr("Imię", "First Name"), className = "form-label fw-bold mb-1")
             val firstNameInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "Wpisz imię" }
             label(I18n.tr("Nazwisko", "Last Name"), className = "form-label fw-bold mb-1")
