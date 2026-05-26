@@ -15,17 +15,29 @@ object ApiService {
     // ==========================================
 
     fun uploadToCloudinary(file: dynamic): kotlin.js.Promise<dynamic> {
-        // Używamy natywnego JavaScriptu, żeby Kotlin nie zgubił danych!
-        val formData = js("new FormData()")
-        formData.append("file", file)
-        formData.append("upload_preset", "danceinsense")
-
-        return window.fetch("https://api.cloudinary.com/v1_1/dechlizont/video/upload", org.w3c.fetch.RequestInit(
-            method = "POST",
-            body = formData
-        )).then { response ->
-            if (response.ok) response.json()
-            else throw Exception("Błąd wgrywania do Cloudinary: ${response.status}")
+        return kotlin.js.Promise { resolve, reject ->
+            js("""
+                var fd = new FormData();
+                fd.append('file', file);
+                fd.append('upload_preset', 'danceinsense');
+                
+                fetch('https://api.cloudinary.com/v1_1/dechlizont/video/upload', {
+                    method: 'POST',
+                    body: fd
+                })
+                .then(function(res) {
+                    if (!res.ok) {
+                        throw new Error('Cloudinary error: ' + res.status);
+                    }
+                    return res.json();
+                })
+                .then(function(data) {
+                    resolve(data);
+                })
+                .catch(function(err) {
+                    reject(err);
+                });
+            """)
         }
     }
 
