@@ -964,7 +964,16 @@ class App : Application() {
                                             val title = taskTitleInput.value
                                             val desc = taskDescInput.value ?: ""
                                             val files = fileInput.getElement()?.asDynamic()?.files
-                                            val deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
+                                            var deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
+                                            if (deadlineRaw.contains(".")) {
+                                                try {
+                                                    val parts = deadlineRaw.split(", ")
+                                                    val dateParts = parts[0].split(".")
+                                                    deadlineRaw = "${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${parts[1]}"
+                                                } catch (e: Throwable) {
+                                                    deadlineRaw = "2027-01-01T12:00"
+                                                }
+                                            }
                                             val deadline = if (deadlineRaw.length >= 16) {
                                                 deadlineRaw.take(16) + ":00"
                                             } else "2027-01-01T12:00:00"
