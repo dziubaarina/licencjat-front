@@ -21,7 +21,7 @@ object ApiService {
                 fd.append('file', file);
                 fd.append('upload_preset', 'danceinsense');
                 
-                fetch('https://api.cloudinary.com/v1_1/dechlizont/video/upload', {
+                fetch('https://api.cloudinary.com/v1_1/dechlzont/video/upload', {
                     method: 'POST',
                     body: fd
                 })
