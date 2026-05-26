@@ -200,18 +200,26 @@ object ApiService {
     // ==========================================
 
     fun uploadVideoForTask(file: dynamic, taskId: Int, dancerId: Int): kotlin.js.Promise<dynamic> {
-        val formData = org.w3c.xhr.FormData()
-        formData.append("file", file as Blob)
-        formData.append("taskId", taskId.toString())
-        formData.append("dancerId", dancerId.toString())
-
-        return window.fetch("$BASE/submissions", org.w3c.fetch.RequestInit(
-            method = "POST",
-            headers = kotlin.js.json("Authorization" to "Bearer ${token()}"),
-            body = formData
-        )).then { response ->
-            if (response.ok) response.json()
-            else throw Exception("Błąd serwera: ${response.status}")
+        // Krok 1: upload pliku bezpośrednio do Cloudinary z przeglądarki
+        return uploadToCloudinary(file).then<dynamic> { cloudinaryRes: dynamic ->
+            val videoUrl = cloudinaryRes.secure_url?.toString()
+                ?: throw Exception("Cloudinary nie zwróciło URL")
+            // Krok 2: wyślij URL + dane do backendu jako JSON
+            window.fetch("$BASE/submissions/url", org.w3c.fetch.RequestInit(
+                method = "POST",
+                headers = kotlin.js.json(
+                    "Authorization" to "Bearer ${token()}",
+                    "Content-Type" to "application/json"
+                ),
+                body = JSON.stringify(kotlin.js.json(
+                    "taskId" to taskId,
+                    "dancerId" to dancerId,
+                    "videoUrl" to videoUrl
+                ))
+            )).then { response ->
+                if (response.ok) response.json()
+                else throw Exception("Błąd serwera: ${response.status}")
+            }
         }
     }
 
