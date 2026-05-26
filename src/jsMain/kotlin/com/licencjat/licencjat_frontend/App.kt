@@ -964,19 +964,26 @@ class App : Application() {
                                             val title = taskTitleInput.value
                                             val desc = taskDescInput.value ?: ""
                                             val files = fileInput.getElement()?.asDynamic()?.files
-                                            var deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
-                                            if (deadlineRaw.contains(".")) {
-                                                try {
-                                                    val parts = deadlineRaw.split(", ")
+                                            val deadlineRaw = deadlineInput.getElement()?.asDynamic()?.value?.toString() ?: ""
+                                            val deadline = try {
+                                                // Safari zwraca "25.08.2026, 23:27" zamiast ISO "2026-08-25T23:27"
+                                                // Normalizujemy do ISO przed wysłaniem
+                                                val cleaned = deadlineRaw.trim()
+                                                if (cleaned.contains("T")) {
+                                                    // Już ISO — tylko upewnij się że ma sekundy
+                                                    if (cleaned.length == 16) cleaned + ":00" else cleaned.take(19)
+                                                } else {
+                                                    // Format Safari: "25.08.2026, 23:27" lub "25.08.2026 23:27"
+                                                    val normalized = cleaned.replace(", ", " ").replace(",", " ")
+                                                    val parts = normalized.split(" ")
                                                     val dateParts = parts[0].split(".")
-                                                    deadlineRaw = "${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${parts[1]}"
-                                                } catch (e: Throwable) {
-                                                    deadlineRaw = "2027-01-01T12:00"
+                                                    val timePart = if (parts.size > 1) parts[1] else "00:00"
+                                                    val timeWithSec = if (timePart.length == 5) "$timePart:00" else timePart.take(8)
+                                                    "${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T$timeWithSec"
                                                 }
+                                            } catch (e: Exception) {
+                                                "2027-01-01T12:00:00"
                                             }
-                                            val deadline = if (deadlineRaw.length >= 16) {
-                                                deadlineRaw.take(16) + ":00"
-                                            } else "2027-01-01T12:00:00"
 
                                             if (!title.isNullOrBlank() && files != null && files.length > 0 && selected.isNotEmpty()) {
                                                 val file = files[0]
