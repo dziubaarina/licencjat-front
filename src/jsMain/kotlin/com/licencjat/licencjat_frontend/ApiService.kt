@@ -15,11 +15,11 @@ object ApiService {
     // ==========================================
 
     fun uploadToCloudinary(file: dynamic): kotlin.js.Promise<dynamic> {
-        val formData = org.w3c.xhr.FormData()
-        formData.append("file", file as Blob)
+        // Używamy natywnego JavaScriptu, żeby Kotlin nie zgubił danych!
+        val formData = js("new FormData()")
+        formData.append("file", file)
         formData.append("upload_preset", "danceinsense")
 
-        // Zwróć uwagę, że link zawiera Twoją nazwę chmury: dechlizont
         return window.fetch("https://api.cloudinary.com/v1_1/dechlizont/video/upload", org.w3c.fetch.RequestInit(
             method = "POST",
             body = formData
