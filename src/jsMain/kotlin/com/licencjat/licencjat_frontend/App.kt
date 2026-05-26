@@ -565,7 +565,7 @@ class App : Application() {
         }
 
         modal.vPanel(className = "p-4") {
-            h3(I18n.tr("Witaj w DanceInSense APP", "Welcome to DanceInSense APP"), className = "text-center fw-bold text-primary-dance mb-4")
+            h3(I18n.tr("Witaj w DANCE APP", "Welcome to DANCE APP"), className = "text-center fw-bold text-primary-dance mb-4")
 
             label(I18n.tr("Adres e-mail", "Email address"), className = "form-label fw-bold mb-1")
             val emailInput = textInput(type = io.kvision.html.InputType.TEXT, className = "form-control login-input rounded-3 mb-3") {
@@ -678,7 +678,7 @@ class App : Application() {
         }
 
         modal.vPanel(className = "p-4") {
-            h3(I18n.tr("Utwórz konto w DanceInSense APP", "Create an account"), className = "text-center fw-bold text-primary-dance mb-4")
+            h3(I18n.tr("Utwórz konto w DANCE APP", "Create an account"), className = "text-center fw-bold text-primary-dance mb-4")
             label(I18n.tr("Imię", "First Name"), className = "form-label fw-bold mb-1")
             val firstNameInput = textInput(className = "form-control login-input rounded-3 mb-3") { placeholder = "Wpisz imię" }
             label(I18n.tr("Nazwisko", "Last Name"), className = "form-label fw-bold mb-1")
@@ -836,7 +836,7 @@ class App : Application() {
 
     private fun Container.buildChoreoTasks() {
         val selected = io.kvision.state.ObservableListWrapper<String>()
-        val choreoId = window.localStorage.getItem("userId")?.toIntOrNull() ?: 1
+        val choreoId = window.localStorage.getItem("userId")?.toIntOrNull()
         val dancerLoading = ObservableValue(true)
         val publishing = ObservableValue(false)
         val taskError = ObservableValue<String?>(null)
@@ -985,11 +985,15 @@ class App : Application() {
                                                 "2027-01-01T12:00:00"
                                             }
 
+                                    if (choreoId == null) {
+                                        window.alert(I18n.tr("Sesja wygasła lub zgubiono ID. Wyloguj się i zaloguj ponownie.", "Session expired or ID lost. Log out and log in again."))
+                                        return@onClick
+                                    }
+
                                             if (!title.isNullOrBlank() && files != null && files.length > 0 && selected.isNotEmpty()) {
                                                 val file = files[0]
-                                                val dancerIdsList = selected.toList()
                                                 publishing.value = true
-                                                ApiService.createTask(title, desc, deadline, choreoId, dancerIdsList, file).then<dynamic> { response: dynamic ->
+                                                ApiService.createTask(title, desc, deadline, choreoId, file).then<dynamic> { response: dynamic ->
                                                     activeTasks.add(0, response)
                                                     showToast(I18n.tr("✔ Zadanie zapisane w bazie!", "✔ Task saved to database!"))
                                                     taskTitleInput.value = null
