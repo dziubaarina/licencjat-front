@@ -989,7 +989,7 @@ class App : Application() {
                                                 val file = files[0]
                                                 val dancerIdsList = selected.toList()
                                                 publishing.value = true
-                                                ApiService.createTask(title, desc, deadline, choreoId, dancerIdsList, file).then<dynamic> { response: dynamic ->
+                                                ApiService.createTask(title, desc, deadline, choreoId, file).then<dynamic> { response: dynamic ->
                                                     activeTasks.add(0, response)
                                                     showToast(I18n.tr("✔ Zadanie zapisane w bazie!", "✔ Task saved to database!"))
                                                     taskTitleInput.value = null
@@ -1782,7 +1782,8 @@ class App : Application() {
                                                     small(I18n.tr("Choreograf", "Choreographer"), className = "text-muted")
                                                 }
                                                 // KOSZ TYLKO DLA CHOREOGRAFA I TYLKO KIEDY WŁAŚNIE OCENIA (!isGraded)
-                                                if (role == "CHOREOGRAPHER" && !PlayerState.isGraded && commentId != null) {
+                                                val currentRole = window.localStorage.getItem("userRole") ?: ""
+                                                if (currentRole == "ADMIN" && commentId != null) {
                                                     tag(TAG.BUTTON, className = "btn btn-sm btn-outline-danger border-0 ms-2") {
                                                         tag(TAG.I, className = "fa-solid fa-trash")
                                                         setAttribute("title", I18n.tr("Usuń komentarz", "Delete comment"))
