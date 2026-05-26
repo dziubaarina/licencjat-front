@@ -11,6 +11,25 @@ object ApiService {
     private fun token() = window.localStorage.getItem("jwt") ?: ""
 
     // ==========================================
+    // CLOUDINARY
+    // ==========================================
+
+    fun uploadToCloudinary(file: dynamic): kotlin.js.Promise<dynamic> {
+        val formData = org.w3c.xhr.FormData()
+        formData.append("file", file as Blob)
+        formData.append("upload_preset", "danceinsense")
+
+        // Zwróć uwagę, że link zawiera Twoją nazwę chmury: dechlizont
+        return window.fetch("https://api.cloudinary.com/v1_1/dechlizont/video/upload", org.w3c.fetch.RequestInit(
+            method = "POST",
+            body = formData
+        )).then { response ->
+            if (response.ok) response.json()
+            else throw Exception("Błąd wgrywania do Cloudinary: ${response.status}")
+        }
+    }
+
+    // ==========================================
     // AUTH
     // ==========================================
 
