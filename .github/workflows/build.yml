@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 jobs:
   build-and-push:
@@ -28,9 +31,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push: ${{ github.event_name == 'push' }}
           tags: ghcr.io/${{ github.repository }}:latest
 
       - name: Trigger Render Deploy Hook
-        if: success()
+        if: success() && github.event_name == 'push'
         run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
