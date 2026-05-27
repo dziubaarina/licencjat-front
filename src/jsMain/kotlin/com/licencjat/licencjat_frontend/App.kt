@@ -993,7 +993,7 @@ class App : Application() {
                                             if (!title.isNullOrBlank() && files != null && files.length > 0 && selected.isNotEmpty()) {
                                                 val file = files[0]
                                                 publishing.value = true
-                                                ApiService.createTask(title, desc, deadline, choreoId, file).then<dynamic> { response: dynamic ->
+                                        ApiService.createTask(title, desc, deadline, choreoId, selected.toList(), file).then<dynamic> { response: dynamic ->
                                                     activeTasks.add(0, response)
                                                     showToast(I18n.tr("✔ Zadanie zapisane w bazie!", "✔ Task saved to database!"))
                                                     taskTitleInput.value = null
