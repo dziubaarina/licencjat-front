@@ -2625,14 +2625,4 @@ fun showToast(message: String) {
 
 fun main() {
     startApplication(::App, null, CoreModule, BootstrapModule, BootstrapCssModule, FontAwesomeModule, TomSelectModule)
-}   toast.textContent = message
-    document.body?.appendChild(toast)
-    window.setTimeout({
-        toast.asDynamic().classList.add("dance-toast-hide")
-        window.setTimeout({ document.body?.removeChild(toast) }, 400)
-    }, 2500)
-}
-
-fun main() {
-    startApplication(::App, null, CoreModule, BootstrapModule, BootstrapCssModule, FontAwesomeModule, TomSelectModule)
 }
