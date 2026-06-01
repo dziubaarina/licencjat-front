@@ -2231,14 +2231,20 @@ class App : Application() {
                                                                 if (isMine) {
                                                                     tag(TAG.BUTTON, I18n.tr("Edytuj", "Edit"), className = "btn btn-sm btn-outline-info me-2 py-0 px-2") {
                                                                         onClick {
-                                                                            console.log("Kliknięto edytuj")
-                                                                            // isEditing.value = true // Zakomentowane do czasu przygotowania backendu
+                                                                            isEditing.value = true
                                                                         }
                                                                     }
                                                                     tag(TAG.BUTTON, I18n.tr("Usuń", "Delete"), className = "btn btn-sm btn-outline-danger py-0 px-2") {
                                                                         onClick {
-                                                                            console.log("Kliknięto usuń")
-                                                                            // Struktura pod backend do dodania później
+                                                                            if (window.confirm(I18n.tr("Usunąć tę wiadomość?", "Delete this message?"))) {
+                                                                                ApiService.deleteChatMessage(mId).then<dynamic> {
+                                                                                    loadMessages(selectedRecipients.value)
+                                                                                    null
+                                                                                }.catch<dynamic> { _: Throwable ->
+                                                                                    window.alert(I18n.tr("Błąd usuwania wiadomości.", "Error deleting message."))
+                                                                                    null
+                                                                                }
+                                                                            }
                                                                         }
                                                                     }
                                                                 }
@@ -2610,6 +2616,16 @@ fun showToast(message: String) {
     val toast = document.createElement("div")
     toast.asDynamic().className = "dance-toast"
     toast.textContent = message
+    document.body?.appendChild(toast)
+    window.setTimeout({
+        toast.asDynamic().classList.add("dance-toast-hide")
+        window.setTimeout({ document.body?.removeChild(toast) }, 400)
+    }, 2500)
+}
+
+fun main() {
+    startApplication(::App, null, CoreModule, BootstrapModule, BootstrapCssModule, FontAwesomeModule, TomSelectModule)
+}   toast.textContent = message
     document.body?.appendChild(toast)
     window.setTimeout({
         toast.asDynamic().classList.add("dance-toast-hide")
